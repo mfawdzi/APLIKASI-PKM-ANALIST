@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APLIKASI DIAGRAM PKM ANALYST by fitra annisa</title>
+    
+    <!-- Library Eksternal -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #f8fafc; 
+            color: #0f172a;
+        }
+
+        /* Canvas Utama Laporan */
+        .report-canvas {
+            background: white;
+            padding: 30px;
+            min-width: 1700px; 
+            display: inline-block;
+            border: 2px solid #000;
+        }
+
+        /* Container Grid 2 Kolom */
+        .diagram-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .route-row {
+            display: flex;
+            border: 2px solid #000;
+            background: #fff;
+            min-height: 100px;
+            position: relative;
+            break-inside: avoid;
+        }
+
+        /* Label Rute Samping - Dioptimalkan untuk Teks Besar */
+        .route-label-side {
+            width: 200px;
+            background: #0f172a;
+            color: #fff;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-right: 2px solid #000;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        /* Area Grafik */
+        .chart-area-horizontal {
+            flex: 1;
+            position: relative;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            padding: 5px 30px; 
+        }
+
+        .lane-horizontal {
+            width: 100%;
+            height: 22px;
+            position: relative;
+            margin-bottom: 3px;
+        }
+
+        .bar-segment-horizontal {
+            position: absolute;
+            height: 85%; 
+            top: 7.5%;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-size: 10px;
+            font-weight: 900;
+            z-index: 10;
+            border: 1px solid rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+
+        /* Sumbu PKM Atas */
+        .x-axis-top {
+            position: relative;
+            height: 22px;
+            border-bottom: 2px solid #000;
+            margin-bottom: 5px;
+        }
+
+        .axis-tick {
+            position: absolute;
+            transform: translateX(-50%);
+            font-size: 11px;
+            font-weight: 900;
+            color: #000;
+            top: 0;
+        }
+
+        .grid-line {
+            position: absolute;
+            top: 22px;
+            bottom: 0;
+            width: 1px;
+            background-color: #f1f5f9;
+            z-index: 1;
+        }
+
+        #loader {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(255,255,255,0.95); z-index: 9999;
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        /* --- OPTIMASI PRINT (Target Setengah Halaman A4) --- */
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; padding: 0 !important; margin: 0 !important; }
+            
+            .report-canvas { 
+                border: 2px solid #000; 
+                padding: 10px !important; 
+                width: 100% !important; 
+                min-width: unset !important;
+                transform: scale(0.55); 
+                transform-origin: top left;
+                margin: 0 !important;
+            }
+
+            .diagram-container { 
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 8px !important; 
+            }
+            .route-row { min-height: 80px !important; }
+            .route-label-side { width: 180px !important; }
+            
+            @page {
+                size: A4 portrait;
+                margin: 5mm;
+            }
+        }
+    </style>
+</head>
+<body class="p-6">
+
+    <div id="loader">
+        <div class="w-14 h-14 border-8 border-black border-t-transparent rounded-full animate-spin"></div>
+        <p class="mt-6 font-black text-xs uppercase tracking-widest">Memproses Data...</p>
+    </div>
+
+    <!-- Modal Pengaturan Rute -->
+    <div id="settingsModal" class="no-print" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.7); z-index:9998; align-items:center; justify-content:center; padding:16px;">
+        <div class="bg-white rounded-[24px] w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <div>
+                    <h3 class="font-black uppercase text-sm tracking-widest">Pengaturan Rute</h3>
+                    <p class="text-slate-400 text-[10px] font-bold uppercase tracking-wider mt-1">Tambah atau hapus rute sesuai kebutuhan lapangan</p>
+                </div>
+                <button onclick="closeSettings()" class="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-lg font-black">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1" id="routeListContainer"></div>
+            <div class="p-6 border-t border-slate-100 bg-slate-50">
+                <p class="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-wider">Tambah Rute Baru</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                    <div class="md:col-span-2">
+                        <input id="newRouteName" type="text" placeholder="Masukan Nama Rute" class="w-full p-4 bg-white border-2 border-slate-100 rounded-xl outline-none font-bold">
+                    </div>
+                    <div>
+                        <input id="newRouteKm" type="number" step="0.01" min="0" placeholder="Panjang (KM)" class="w-full p-4 bg-white border-2 border-slate-100 rounded-xl outline-none font-bold">
+                    </div>
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button onclick="addRoute()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-black uppercase text-[10px] tracking-widest">Tambah Rute</button>
+                    <button onclick="resetRoutesToDefault()" class="bg-white border-2 border-slate-200 text-slate-600 px-6 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest">Reset ke Default</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toolbar Atas -->
+    <div class="max-w-[1700px] mx-auto no-print mb-6">
+        <div class="bg-white p-6 rounded-[24px] shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-5">
+                <div class="bg-blue-600 p-4 rounded-xl text-white shadow-lg">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black uppercase tracking-tighter">APLIKASI DIAGRAM PKM ANALYST <span class="text-blue-600">(V1.0)</span></h1>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+                <button onclick="openSettings()" class="px-6 py-3 bg-white border-2 border-slate-900 text-slate-900 rounded-xl font-black text-[10px] uppercase hover:bg-slate-100">Pengaturan Rute</button>
+                <label class="px-6 py-3 bg-amber-500 text-white rounded-xl font-black text-[10px] uppercase cursor-pointer hover:bg-amber-600">
+                    import database sebelum nya <input type="file" id="importInput" class="hidden" accept=".xlsx, .xls">
+                </label>
+                <button onclick="exportIntegratedExcel()" class="px-6 py-3 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase hover:bg-emerald-700">export database & diagram</button>
+                <button onclick="window.print()" class="px-6 py-3 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase">Print Laporan</button>
+            </div>
+        </div>
+
+        <!-- Panel Input -->
+        <div class="bg-white p-8 rounded-[24px] shadow-sm border border-slate-200 mt-4">
+            <form id="pkmForm" class="grid grid-cols-1 md:grid-cols-5 gap-6 items-end">
+                <input type="hidden" id="editId">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase">Tanggal</label>
+                    <input type="date" id="tanggal" required class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase">Rute</label>
+                    <select id="ruteSelect" required class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold">
+                        <option value="">-- PILIH RUTE --</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3 md:col-span-2">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase">PKM AWAL</label>
+                        <input type="number" id="pkmAwal" value="0" required class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase">PKM AKHIR</label>
+                        <input type="number" id="pkmAkhir" required class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold">
+                    </div>
+                </div>
+                <button type="submit" id="submitBtn" class="w-full h-[58px] bg-blue-600 text-white font-black rounded-xl hover:bg-blue-700 uppercase text-xs tracking-widest">Simpan</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- AREA LAPORAN -->
+    <div class="overflow-x-auto pb-20">
+        <div id="printArea" class="report-canvas mx-auto">
+            <div class="text-center mb-6 border-b-4 border-black pb-4">
+                <h2 class="text-4xl font-black uppercase tracking-[0.1em] text-black">DIAGRAM PROGRES PENYISIRAN PKM</h2>
+            </div>
+            
+            <div id="gridContainer" class="diagram-container"></div>
+        </div>
+    </div>
+
+    <!-- Tabel Database -->
+    <div class="max-w-[1700px] mx-auto bg-white rounded-[24px] border shadow-sm overflow-hidden mb-20 no-print">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="text-[10px] font-black uppercase text-slate-400 border-b bg-white">
+                    <th class="p-5">Tanggal</th>
+                    <th class="p-5">Rute</th>
+                    <th class="p-5 text-center">Rentang Meter</th>
+                    <th class="p-5 text-center">Volume (M)</th>
+                    <th class="p-5 text-right">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="dbTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
+        </table>
+    </div>
+
+    <script>
+        // Konfigurasi 18 Rute Default (dipakai kalau belum ada pengaturan tersimpan / saat Reset ke Default)
+        function defaultRoutes() {
+            return [
+                { name: "CGS 1 - CGS 3", km: 3450, ticks: [0, 500, 1000, 2000, 3000, 3450] },
+                { name: "CGS 10", km: 5000, ticks: [0, 1000, 2000, 3000, 4000, 5000] },
+                { name: "CGS 3 - CGS 5", km: 4700, ticks: [0, 1000, 2000, 3000, 4000, 4700] },
+                { name: "DDP - DGF", km: 2500, ticks: [0, 500, 1000, 1500, 2000, 2500] },
+                { name: "DDP - P3", km: 6900, ticks: [0, 2000, 3000, 5000, 6000, 6900] },
+                { name: "DDP - P5", km: 6600, ticks: [0, 1000, 2000, 3000, 4000, 6600] },
+                { name: "DGF - CDGF", km: 8500, ticks: [0, 1000, 3000, 6000, 7000, 8500] },
+                { name: "INTAN GS", km: 5000, ticks: [0, 1000, 2000, 3000, 4000, 5000] },
+                { name: "LOADING LINE", km: 4700, ticks: [0, 1000, 2000, 3000, 4000, 4700] },
+                { name: "MENGGALA NORTH", km: 28000, ticks: [0, 5000, 9000, 14000, 23000, 28000] },
+                { name: "MENGGALA SOUTH", km: 2300, ticks: [0, 500, 1000, 1500, 2000, 2300] },
+                { name: "P3 - SS5", km: 700, ticks: [0, 100, 300, 500, 600, 700] },
+                { name: "P3 - SS6", km: 2300, ticks: [0, 500, 1000, 1500, 2000, 2300] },
+                { name: "P5 - MCTN", km: 8500, ticks: [0, 1000, 3000, 6000, 7000, 8500] },
+                { name: "PAGAR GP - CDGF", km: 40200, ticks: [0, 7000, 13000, 27000, 34000, 40200] },
+                { name: "PAGAR GS", km: 10200, ticks: [0, 2000, 3000, 7000, 9000, 10200] },
+                { name: "PEMBURU GS", km: 7000, ticks: [0, 1000, 3000, 5000, 6000, 7000] },
+                { name: "PETANI GS - DURI", km: 21000, ticks: [0, 4000, 8000, 15000, 18000, 21000] }
+            ].sort((a,b) => a.name.localeCompare(b.name));
+        }
+
+        // Bikin 6 titik sumbu (0 s/d panjang rute) yang rata, dipakai untuk rute baru hasil tambahan user
+        function genTicks(km) {
+            const step = km / 5;
+            return [0, Math.round(step), Math.round(step*2), Math.round(step*3), Math.round(step*4), km];
+        }
+
+        function genRouteId() {
+            return 'route_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        }
+
+        function loadRoutes() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('pkm_routes_v27'));
+                if (Array.isArray(saved) && saved.length > 0) {
+                    return saved.map(r => r.id ? r : { ...r, id: genRouteId() });
+                }
+            } catch (e) {}
+            return defaultRoutes().map(r => ({ ...r, id: genRouteId() }));
+        }
+
+        function saveRoutes() {
+            routeConfig.sort((a,b) => a.name.localeCompare(b.name));
+            localStorage.setItem('pkm_routes_v27', JSON.stringify(routeConfig));
+        }
+
+        let routeConfig = loadRoutes();
+        let db = JSON.parse(localStorage.getItem('pkm_v27_data')) || [];
+
+        window.onload = () => {
+            renderRouteOptions();
+            document.getElementById('tanggal').valueAsDate = new Date();
+            refresh();
+            setupImport();
+        };
+
+        function renderRouteOptions() {
+            const select = document.getElementById('ruteSelect');
+            const current = select.value;
+            select.innerHTML = '<option value="">-- PILIH RUTE --</option>';
+            routeConfig.forEach(r => {
+                const kmFormatted = (r.km / 1000).toLocaleString('id-ID');
+                select.innerHTML += `<option value="${r.name}">${r.name} (${kmFormatted} KM)</option>`;
+            });
+            if (routeConfig.some(r => r.name === current)) select.value = current;
+        }
+
+        function refresh() {
+            renderDiagrams();
+            renderTable();
+        }
+
+        /* ===== Pengaturan Rute (Tambah / Hapus Segment) ===== */
+        function openSettings() {
+            renderRouteSettings();
+            document.getElementById('settingsModal').style.display = 'flex';
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function renderRouteSettings() {
+            const c = document.getElementById('routeListContainer');
+            if (routeConfig.length === 0) {
+                c.innerHTML = `<p class="text-center text-slate-400 text-xs font-bold uppercase py-10">Belum ada rute</p>`;
+                return;
+            }
+            c.innerHTML = routeConfig.map(r => {
+                const count = db.filter(e => e.route === r.name).length;
+                return `
+                    <div class="flex items-center justify-between p-4 mb-2 rounded-xl border-2 border-slate-100">
+                        <div>
+                            <p class="font-black text-sm">${r.name}</p>
+                            <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mt-0.5">${(r.km/1000).toLocaleString('id-ID')} KM${count ? ` &bull; ${count} data tersimpan` : ''}</p>
+                        </div>
+                        <button onclick="deleteRoute('${r.id}')" class="text-red-500 font-black text-[10px] uppercase tracking-widest hover:underline flex-shrink-0 ml-4">Hapus</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addRoute() {
+            const nameInput = document.getElementById('newRouteName');
+            const kmInput = document.getElementById('newRouteKm');
+            const name = nameInput.value.trim().toUpperCase();
+            const kmVal = parseFloat(kmInput.value);
+
+            if (!name) { alert('Nama rute belum diisi.'); return; }
+            if (!kmVal || kmVal <= 0) { alert('Panjang rute (KM) harus lebih dari 0.'); return; }
+            if (routeConfig.some(r => r.name === name)) { alert('Nama rute sudah ada, gunakan nama lain.'); return; }
+
+            const km = Math.round(kmVal * 1000);
+            routeConfig.push({ id: genRouteId(), name, km, ticks: genTicks(km) });
+            saveRoutes();
+            nameInput.value = '';
+            kmInput.value = '';
+
+            renderRouteSettings();
+            renderRouteOptions();
+            refresh();
+        }
+
+        function deleteRoute(id) {
+            const r = routeConfig.find(x => x.id === id);
+            if (!r) return;
+            const count = db.filter(e => e.route === r.name).length;
+            const msg = count > 0
+                ? `Rute "${r.name}" memiliki ${count} data progres. Data tersebut tetap ada di database tapi tidak lagi tampil di diagram. Lanjutkan hapus rute?`
+                : `Hapus rute "${r.name}"?`;
+            if (!confirm(msg)) return;
+
+            routeConfig = routeConfig.filter(x => x.id !== id);
+            saveRoutes();
+
+            renderRouteSettings();
+            renderRouteOptions();
+            refresh();
+        }
+
+        function resetRoutesToDefault() {
+            if (!confirm('Kembalikan daftar rute ke 18 rute default? Rute tambahan yang sudah dibuat akan dihapus.')) return;
+            routeConfig = defaultRoutes().map(r => ({ ...r, id: genRouteId() }));
+            saveRoutes();
+
+            renderRouteSettings();
+            renderRouteOptions();
+            refresh();
+        }
+
+        function renderDiagrams() {
+            const container = document.getElementById('gridContainer');
+            container.innerHTML = '';
+
+            routeConfig.forEach((r) => {
+                const rData = db.filter(e => e.route === r.name).sort((a,b) => a.awal - b.awal);
+                let rawLanes = [];
+                
+                // Logika Jalur
+                rData.forEach(entry => {
+                    let segments = [{ start: entry.awal, end: entry.akhir }];
+                    for (let l = 0; l < 10; l++) { 
+                        if (!rawLanes[l]) rawLanes[l] = [];
+                        let nextQueue = [];
+                        segments.forEach(seg => {
+                            let overlaps = rawLanes[l].filter(ex => seg.start < ex.end && seg.end > ex.start);
+                            if (overlaps.length === 0) {
+                                rawLanes[l].push(seg);
+                            } else {
+                                let cur = seg.start;
+                                overlaps.sort((a,b) => a.start - b.start);
+                                overlaps.forEach(ov => {
+                                    if (cur < ov.start) rawLanes[l].push({ start: cur, end: ov.start });
+                                    let colStart = Math.max(cur, ov.start);
+                                    let colEnd = Math.min(seg.end, ov.end);
+                                    if (colStart < colEnd) nextQueue.push({ start: colStart, end: colEnd });
+                                    cur = Math.max(cur, ov.end);
+                                });
+                                if (cur < seg.end) rawLanes[l].push({ start: cur, end: seg.end });
+                            }
+                        });
+                        segments = nextQueue;
+                        if (segments.length === 0) break;
+                    }
+                });
+
+                const row = document.createElement('div');
+                row.className = 'route-row';
+                
+                const labelSide = document.createElement('div');
+                labelSide.className = 'route-label-side';
+                labelSide.innerHTML = `
+                    <div class="text-[22px] font-black uppercase leading-tight tracking-tight">${r.name}</div>
+                    <div class="text-[14px] opacity-70 font-bold mt-1.5 border-t border-white/20 pt-1">TOTAL: ${(r.km/1000).toLocaleString('id-ID')} KM</div>
+                `;
+
+                const chartArea = document.createElement('div');
+                chartArea.className = 'chart-area-horizontal';
+
+                const xAxis = document.createElement('div');
+                xAxis.className = 'x-axis-top';
+                r.ticks.forEach((tickVal) => {
+                    const pos = (tickVal / r.km) * 100;
+                    const tickLabel = document.createElement('div');
+                    tickLabel.className = 'axis-tick';
+                    tickLabel.style.left = `${pos}%`;
+                    tickLabel.innerText = tickVal.toLocaleString('id-ID');
+                    xAxis.appendChild(tickLabel);
+
+                    const gridLine = document.createElement('div');
+                    gridLine.className = 'grid-line';
+                    gridLine.style.left = `${pos}%`;
+                    chartArea.appendChild(gridLine);
+                });
+                chartArea.appendChild(xAxis);
+
+                rawLanes.forEach((laneData) => {
+                    if (laneData.length === 0) return;
+                    laneData.sort((a,b) => a.start - b.start);
+                    let merged = [];
+                    let cur = { ...laneData[0] };
+                    for (let i = 1; i < laneData.length; i++) {
+                        if (laneData[i].start <= cur.end) {
+                            cur.end = Math.max(cur.end, laneData[i].end);
+                        } else {
+                            merged.push(cur);
+                            cur = { ...laneData[i] };
+                        }
+                    }
+                    merged.push(cur);
+
+                    const laneSum = merged.reduce((acc, curr) => acc + (curr.end - curr.start), 0);
+                    const laneColor = laneSum >= r.km ? '#22c55e' : '#facc15';
+
+                    const laneDiv = document.createElement('div');
+                    laneDiv.className = 'lane-horizontal';
+                    
+                    merged.forEach(segment => {
+                        const bar = document.createElement('div');
+                        bar.className = 'bar-segment-horizontal';
+                        const w = ((segment.end - segment.start) / r.km) * 100;
+                        const l = (segment.start / r.km) * 100;
+                        bar.style.width = `${Math.max(w, 0.4)}%`;
+                        bar.style.left = `${l}%`;
+                        bar.style.backgroundColor = laneColor;
+                        if(w > 2.5) bar.innerText = (segment.end - segment.start).toLocaleString();
+                        laneDiv.appendChild(bar);
+                    });
+                    chartArea.appendChild(laneDiv);
+                });
+
+                row.appendChild(labelSide);
+                row.appendChild(chartArea);
+                container.appendChild(row);
+            });
+        }
+
+        document.getElementById('pkmForm').onsubmit = (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editId').value;
+            const entry = {
+                id: id || Date.now().toString(),
+                tgl: document.getElementById('tanggal').value,
+                route: document.getElementById('ruteSelect').value,
+                awal: parseInt(document.getElementById('pkmAwal').value),
+                akhir: parseInt(document.getElementById('pkmAkhir').value)
+            };
+            if(entry.akhir <= entry.awal) return alert("PKM Akhir harus lebih besar!");
+            if(id) {
+                const idx = db.findIndex(x => x.id === id);
+                db[idx] = entry;
+            } else {
+                db.push(entry);
+            }
+            localStorage.setItem('pkm_v27_data', JSON.stringify(db));
+            resetForm();
+            refresh();
+        };
+
+        function renderTable() {
+            const tbody = document.getElementById('dbTable');
+            tbody.innerHTML = '';
+            [...db].sort((a,b) => new Date(b.tgl) - new Date(a.tgl)).forEach(e => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 border-b">
+                        <td class="p-5 text-slate-500">${e.tgl}</td>
+                        <td class="p-5 font-black text-blue-600 uppercase">${e.route}</td>
+                        <td class="p-5 text-center font-mono">${e.awal} - ${e.akhir}</td>
+                        <td class="p-5 text-center font-black">${(e.akhir - e.awal).toLocaleString()}</td>
+                        <td class="p-5 text-right space-x-3">
+                            <button onclick="editItem('${e.id}')" class="text-blue-500 font-black uppercase text-[9px]">Ubah</button>
+                            <button onclick="deleteItem('${e.id}')" class="text-red-400 font-black uppercase text-[9px]">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function exportIntegratedExcel() {
+            document.getElementById('loader').style.display = 'flex';
+            try {
+                const canvas = await html2canvas(document.getElementById('printArea'), { scale: 2 });
+                const base64 = canvas.toDataURL('image/png');
+                const wb = new ExcelJS.Workbook();
+                const wsData = wb.addWorksheet('DATABASE');
+                wsData.columns = [
+                    { header: 'TANGGAL', key: 'tgl', width: 15 }, { header: 'RUTE', key: 'route', width: 35 },
+                    { header: 'PKM AWAL', key: 'awal', width: 15 }, { header: 'PKM AKHIR', key: 'akhir', width: 15 },
+                    { header: 'VOLUME', key: 'vol', width: 12 }
+                ];
+                db.forEach(e => wsData.addRow({ ...e, vol: e.akhir-e.awal }));
+                const wsChart = wb.addWorksheet('DIAGRAM');
+                const img = wb.addImage({ base64: base64, extension: 'png' });
+                wsChart.addImage(img, { tl: { col: 1, row: 1 }, ext: { width: canvas.width/2.5, height: canvas.height/2.5 } });
+                const buffer = await wb.xlsx.writeBuffer();
+                saveAs(new Blob([buffer]), `REPORT_PKM_V27_${Date.now()}.xlsx`);
+            } catch (err) { alert("Ekspor Gagal."); }
+            document.getElementById('loader').style.display = 'none';
+        }
+
+        function setupImport() {
+            document.getElementById('importInput').onchange = (e) => {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const workbook = XLSX.read(new Uint8Array(evt.target.result), {type: 'array'});
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                    const mapped = json.map(r => ({
+                        id: Math.random().toString(36).substr(2,9),
+                        tgl: r.TANGGAL || new Date().toISOString().split('T')[0],
+                        route: r.RUTE || r.UNIT_RUTE,
+                        awal: parseInt(r.AWAL || r['PKM AWAL'] || 0),
+                        akhir: parseInt(r.AKHIR || r['PKM AKHIR'] || 0)
+                    })).filter(x => x.route && x.akhir > x.awal);
+                    db = [...db, ...mapped];
+                    localStorage.setItem('pkm_v27_data', JSON.stringify(db));
+                    refresh();
+                };
+                reader.readAsArrayBuffer(e.target.files[0]);
+            };
+        }
+
+        function editItem(id) {
+            const e = db.find(x => x.id === id);
+            document.getElementById('editId').value = e.id;
+            document.getElementById('tanggal').value = e.tgl;
+            document.getElementById('ruteSelect').value = e.route;
+            document.getElementById('pkmAwal').value = e.awal;
+            document.getElementById('pkmAkhir').value = e.akhir;
+            document.getElementById('submitBtn').innerText = "Update Data";
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        function deleteItem(id) {
+            if(confirm("Hapus data?")) {
+                db = db.filter(x => x.id !== id);
+                localStorage.setItem('pkm_v27_data', JSON.stringify(db));
+                refresh();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('pkmForm').reset();
+            document.getElementById('editId').value = "";
+            document.getElementById('pkmAwal').value = 0;
+            document.getElementById('submitBtn').innerText = "Simpan";
+            document.getElementById('tanggal').valueAsDate = new Date();
+        }
+    </script>
+</body>
+</html>
