@@ -507,7 +507,8 @@
         <select id="filterRoute" class="field-input filter-input" style="width:190px;">
             <option value="">SEMUA RUTE</option>
         </select>
-        <input type="date" id="filterDate" class="field-input filter-input" style="width:150px;">
+        <input type="date" id="filterDateFrom" class="field-input filter-input" style="width:135px;" title="Dari Tanggal">
+        <input type="date" id="filterDateTo" class="field-input filter-input" style="width:135px;" title="Sampai Tanggal">
         <button onclick="clearFilters()" class="btn-tool ghost">Reset Filter</button>
         <button onclick="clearAllData()" class="btn-tool danger">Hapus Semua Data</button>
     </div>
@@ -605,7 +606,8 @@
         let routeConfig = loadRoutes();
 let db = JSON.parse(localStorage.getItem('pkm_v27_data')) || [];
 let filterRoute = '';
-let filterDate = '';
+        let filterDateFrom = '';
+        let filterDateTo = '';
 
         window.onload = () => {
     renderRouteOptions();
@@ -728,7 +730,11 @@ let filterDate = '';
 
             routeConfig.forEach((r) => {
                 if (filterRoute && r.name !== filterRoute) return;
-                const rData = db.filter(e => e.route === r.name && (!filterDate || e.tgl === filterDate)).sort((a,b) => a.awal - b.awal);
+                const rData = db.filter(e =>
+                    e.route === r.name &&
+                    (!filterDateFrom || e.tgl >= filterDateFrom) &&
+                    (!filterDateTo || e.tgl <= filterDateTo)
+                ).sort((a,b) => a.awal - b.awal);
                 let rawLanes = [];
 
                 // Logika Jalur
@@ -865,8 +871,8 @@ let filterDate = '';
             tbody.innerHTML = '';
             let filtered = [...db];
             if (filterRoute) filtered = filtered.filter(e => e.route === filterRoute);
-            if (filterDate) filtered = filtered.filter(e => e.tgl === filterDate);
-            const sorted = filtered.sort((a,b) => new Date(b.tgl) - new Date(a.tgl));
+            if (filterDateFrom) filtered = filtered.filter(e => e.tgl >= filterDateFrom);
+            if (filterDateTo) filtered = filtered.filter(e => e.tgl <= filterDateTo);  const sorted = filtered.sort((a,b) => new Date(b.tgl) - new Date(a.tgl));
             if (sorted.length === 0) {
                 tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Belum ada data progres</td></tr>`;
                 return;
@@ -966,8 +972,13 @@ let filterDate = '';
                 renderDiagrams();
                 renderTable();
             };
-            document.getElementById('filterDate').onchange = (e) => {
-                filterDate = e.target.value;
+            document.getElementById('filterDateFrom').onchange = (e) => {
+                filterDateFrom = e.target.value;
+                renderDiagrams();
+                renderTable();
+            };
+            document.getElementById('filterDateTo').onchange = (e) => {
+                filterDateTo = e.target.value;
                 renderDiagrams();
                 renderTable();
             };
@@ -975,9 +986,11 @@ let filterDate = '';
 
         function clearFilters() {
             filterRoute = '';
-            filterDate = '';
+            filterDateFrom = '';
+            filterDateTo = '';
             document.getElementById('filterRoute').value = '';
-            document.getElementById('filterDate').value = '';
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
             renderDiagrams();
             renderTable();
         }
