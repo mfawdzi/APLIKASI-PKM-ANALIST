@@ -81,6 +81,51 @@
         }
         .app-name { font-family: var(--mono); font-weight: 600; font-size: 13px; letter-spacing: 0.06em; color: var(--text); }
         .app-name .dim { color: var(--text-faint); font-weight: 500; }
+  .route-analysis-ticker {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    margin: 0 18px;
+}
+
+.route-analysis-ticker {
+    flex: 1;
+    min-width: 0;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin: 0 20px;
+}
+
+#routeAnalysisText {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: #79b8e8;
+    white-space: nowrap;
+
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+        opacity 0.35s ease,
+        transform 0.35s ease;
+}
+
+#routeAnalysisText.fade-out {
+    opacity: 0;
+    transform: translateY(-5px);
+}
+
+#routeAnalysisText.fade-in {
+    opacity: 1;
+    transform: translateY(0);
+}
         .titlebar-right { display: flex; align-items: center; gap: 10px; }
         .status-pill {
             display: flex; align-items: center; gap: 7px;
@@ -94,7 +139,20 @@
             animation: pulse-dot 2s ease-in-out infinite;
         }
         @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+.titlebar-left {
+    flex: 0 0 auto;
+    min-width: max-content;
+}
 
+.titlebar-right {
+    flex: 0 0 auto;
+    min-width: max-content;
+}
+
+.titlebar-actions {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
         /* =========================================================
    HEADER + MENU + FORM TETAP TERLIHAT SAAT SCROLL
    ========================================================= */
@@ -258,7 +316,9 @@
 }
 
 .app-name {
-    font-size: 13px;
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
 }
 
 /* Tombol aksi di baris judul */
@@ -620,6 +680,14 @@
         @media (max-width: 900px) {
             .status-bar-group.secondary { display: none; }
         }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    opacity: 0.9;
+    filter: invert(45%) sepia(90%) saturate(1800%) hue-rotate(175deg);
+}
     </style>
 </head>
 <body class="p-4 pb-14">
@@ -667,73 +735,69 @@
              ===================================================== -->
         <div class="titlebar no-print">
 
-            <div class="titlebar-left">
+<div class="titlebar-left">
 
-                <div class="app-glyph">
-                    <svg class="w-4 h-4"
-                         fill="none"
-                         stroke="#1a0d02"
-                         viewBox="0 0 24 24">
+    <div class="app-glyph">
+        <svg class="w-4 h-4"
+             fill="none"
+             stroke="#1a0d02"
+             viewBox="0 0 24 24">
+            <path stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2.5"
+                  d="M13 10V3L4 14h7v7l9-11h-7z">
+            </path>
+        </svg>
+    </div>
 
-                        <path stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2.5"
-                              d="M13 10V3L4 14h7v7l9-11h-7z">
-                        </path>
+    <div class="app-name">
+        PKM ANALYST
+    </div>
 
-                    </svg>
-                </div>
+</div>
 
-                <div class="app-name">
-                    PKM ANALYST
-                    <span class="dim">
-                        / diagram progres penyisiran &middot; v1.0
-                    </span>
-                </div>
+<!-- TENGAH: ANALISA BERJALAN -->
+<div class="route-analysis-ticker">
+    <div id="routeAnalysisText">
+        ANALISA RUTE • MEMUAT DATA...
+    </div>
+</div>
 
-            </div>
-
-            <div class="titlebar-right">
+<!-- KANAN: TOMBOL APLIKASI -->
+<div class="titlebar-right">
 
     <div class="titlebar-actions">
 
-        <!-- PENGATURAN RUTE -->
+        <!-- PENGATURAN -->
         <button onclick="openSettings()" class="btn-tool">
             ⚙ Pengaturan
         </button>
 
-        <!-- IMPORT DATABASE -->
+        <!-- IMPORT -->
         <label class="btn-tool accent2 file-tool">
-
             <span>↑ Import</span>
-
             <input
                 type="file"
                 id="importInput"
                 class="hidden"
                 accept=".xlsx, .xls">
-
         </label>
 
-        <!-- EXPORT DATABASE -->
+        <!-- EXPORT -->
         <button
             onclick="exportIntegratedExcel()"
             class="btn-tool">
-
             ↓ Export
-
         </button>
 
         <!-- PRINT -->
         <button
             onclick="window.print()"
             class="btn-tool primary">
-
             🖨 Print
-
         </button>
 
-        <!-- STATUS -->
+        <!-- SISTEM AKTIF -->
         <div class="status-pill">
             <span class="status-dot"></span>
             Sistem Aktif
@@ -743,7 +807,8 @@
 
 </div>
 
-        </div>
+
+ </div>
 
 
         <!-- =====================================================
@@ -1223,10 +1288,74 @@ let filterRoute = '';
         }
 
         function refresh() {
-            renderDiagrams();
-            renderTable();
-            updateStatusMeta();
-        }
+    renderDiagrams();
+    renderTable();
+    updateStatusMeta();
+    updateRouteAnalysisTicker();
+}
+
+let currentRouteAnalysisIndex = 0;
+let routeAnalysisTimer = null;
+
+function updateRouteAnalysisTicker() {
+
+    const ticker = document.getElementById('routeAnalysisText');
+
+    if (!ticker || !routeConfig.length) return;
+
+    // Jika timer belum dibuat, mulai pergantian
+    if (!routeAnalysisTimer) {
+
+        showNextRouteAnalysis();
+
+        routeAnalysisTimer = setInterval(() => {
+            showNextRouteAnalysis();
+        }, 3000);
+
+    }
+}
+
+
+function showNextRouteAnalysis() {
+
+    const ticker = document.getElementById('routeAnalysisText');
+
+    if (!ticker || !routeConfig.length) return;
+
+    const route = routeConfig[currentRouteAnalysisIndex];
+
+    const score = getRouteRankScore(route);
+
+    let progress = score.greenCount > 0
+        ? 100
+        : score.bestFillPercent;
+
+    progress = Math.min(100, Math.round(progress));
+
+    // Efek menghilang sebentar
+    ticker.classList.add('fade-out');
+
+    setTimeout(() => {
+
+        ticker.innerText =
+            `${route.name}  •  PROGRES: ${progress}%`;
+
+        ticker.classList.remove('fade-out');
+        ticker.classList.add('fade-in');
+
+        setTimeout(() => {
+            ticker.classList.remove('fade-in');
+        }, 350);
+
+    }, 350);
+
+    // Pindah ke rute berikutnya
+    currentRouteAnalysisIndex++;
+
+    if (currentRouteAnalysisIndex >= routeConfig.length) {
+        currentRouteAnalysisIndex = 0;
+    }
+}
 
         // Update angka-angka meta di header laporan & status bar (tampilan saja, tidak mengubah logika data)
        function updateStatusMeta() {
@@ -1642,7 +1771,18 @@ function toggleDatabase() {
                 const img = wb.addImage({ base64: base64, extension: 'png' });
                 wsChart.addImage(img, { tl: { col: 1, row: 1 }, ext: { width: canvas.width/2.5, height: canvas.height/2.5 } });
                 const buffer = await wb.xlsx.writeBuffer();
-                saveAs(new Blob([buffer]), `REPORT_PKM_V27_${Date.now()}.xlsx`);
+               // Ambil tanggal terbaru dari database
+const tanggalTerbaru = db.length
+    ? db.reduce((terbaru, item) =>
+        item.tgl > terbaru ? item.tgl : terbaru
+      , db[0].tgl)
+    : new Date().toISOString().split('T')[0];
+
+// Format YYYY-MM-DD menjadi DD-MM-YYYY
+const [tahun, bulan, tanggal] = tanggalTerbaru.split('-');
+const namaFile = `PKM ${tanggal}-${bulan}-${tahun}.xlsx`;
+
+saveAs(new Blob([buffer]), namaFile);
             } catch (err) { alert("Ekspor Gagal."); }
             document.getElementById('loader').style.display = 'none';
         }
