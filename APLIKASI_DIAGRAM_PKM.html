@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PKM Analyst — Diagram Progres Penyisiran</title>
+
+    <!-- Library Eksternal -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg: #0a0c10;
+            --bg-panel: #12151b;
+            --bg-elevated: #191d25;
+            --bg-input: #0f1218;
+            --border: #262b35;
+            --border-strong: #3a4150;
+            --text: #e6e9ef;
+            --text-dim: #9aa3b3;
+            --text-faint: #59616f;
+            --accent: #ff8a3d;
+            --accent-soft: rgba(255,138,61,0.14);
+            --accent2: #22c5b8;
+            --accent2-soft: rgba(34,197,184,0.14);
+            --success: #3ddc84;
+            --warning: #f0b429;
+            --danger: #ff6270;
+            --info: #4f9cff;
+            --mono: 'IBM Plex Mono', ui-monospace, monospace;
+            --sans: 'IBM Plex Sans', system-ui, sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body { overflow-x: hidden; max-width: 100%; }
+
+        body {
+            font-family: var(--sans);
+            background:
+                radial-gradient(circle at 15% -10%, rgba(255,138,61,0.05), transparent 40%),
+                radial-gradient(circle at 100% 0%, rgba(34,197,184,0.05), transparent 35%),
+                var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        ::selection { background: var(--accent); color: #0a0c10; }
+
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: var(--bg-panel); }
+        ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 6px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+        .mono { font-family: var(--mono); }
+
+        /* ===== App Chrome ===== */
+        .app-shell { max-width: 1760px; margin: 0 auto; padding: 18px 20px 60px; }
+
+        .titlebar {
+            display: flex; align-items: center; justify-content: space-between;
+            background: linear-gradient(180deg, #14171e, #101319);
+            border: 1px solid var(--border);
+            border-radius: 10px 10px 0 0;
+            padding: 10px 16px;
+        }
+        .titlebar-left { display: flex; align-items: center; gap: 12px; }
+        .app-glyph {
+            width: 30px; height: 30px; border-radius: 7px;
+            background: linear-gradient(135deg, var(--accent), #c9581a);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset, 0 4px 10px rgba(255,138,61,0.25);
+            flex-shrink: 0;
+        }
+        .app-name { font-family: var(--mono); font-weight: 600; font-size: 13px; letter-spacing: 0.06em; color: var(--text); }
+        .app-name .dim { color: var(--text-faint); font-weight: 500; }
+        .titlebar-right { display: flex; align-items: center; gap: 10px; }
+        .status-pill {
+            display: flex; align-items: center; gap: 7px;
+            font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+            color: var(--text-dim); background: var(--bg-elevated); border: 1px solid var(--border);
+            padding: 5px 10px; border-radius: 20px;
+        }
+        .status-dot {
+            width: 6px; height: 6px; border-radius: 50%; background: var(--success);
+            box-shadow: 0 0 0 3px rgba(61,220,132,0.15);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+        /* ===== Menu / Toolbar ===== */
+        .menubar {
+            display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+            background: var(--bg-panel);
+            border: 1px solid var(--border); border-top: none;
+            padding: 10px 14px;
+        }
+        .menu-divider { width: 1px; align-self: stretch; background: var(--border); margin: 0 2px; }
+        .btn-tool {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-family: var(--mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+            padding: 9px 14px; border-radius: 7px; border: 1px solid var(--border-strong);
+            background: var(--bg-elevated); color: var(--text-dim);
+            cursor: pointer; transition: all .15s ease;
+        }
+        .btn-tool svg { width: 14px; height: 14px; flex-shrink: 0; }
+        .btn-tool:hover { color: var(--text); border-color: var(--text-faint); background: #1f242f; }
+        .btn-tool.primary { background: var(--accent); border-color: var(--accent); color: #1a0d02; }
+        .btn-tool.primary:hover { background: #ff9a58; }
+        .btn-tool.accent2 { background: transparent; border-color: var(--accent2); color: var(--accent2); }
+        .btn-tool.accent2:hover { background: var(--accent2-soft); }
+        .btn-tool.ghost { background: transparent; }
+      .btn-tool.danger { background: transparent; border-color: var(--danger); color: var(--danger); }
+.btn-tool.danger:hover { background: rgba(255,98,112,0.12); }
+.filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.filter-input { padding: 8px 10px !important; font-size: 11px !important; width: auto; }
+        .btn-tool.file-tool { position: relative; }
+
+        /* ===== Input / Inspector Panel ===== */
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border); border-top: none;
+            padding: 18px 16px;
+        }
+        .panel-bottom { border-radius: 0 0 10px 10px; }
+        .field-label {
+            display: block; font-family: var(--mono); font-size: 9.5px; font-weight: 600;
+            letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 7px;
+        }
+        .field-input {
+            width: 100%; padding: 11px 12px; background: var(--bg-input);
+            border: 1px solid var(--border-strong); border-radius: 7px;
+            color: var(--text); font-family: var(--mono); font-size: 13px; font-weight: 500;
+            outline: none; transition: border-color .15s ease, box-shadow .15s ease;
+        }
+        .field-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+        .field-input option { background: var(--bg-elevated); color: var(--text); }
+        .btn-submit {
+            width: 100%; height: 45px; background: var(--accent); color: #1a0d02;
+            font-family: var(--mono); font-weight: 700; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+            border-radius: 7px; border: none; cursor: pointer; transition: background .15s ease;
+        }
+        .btn-submit:hover { background: #ff9a58; }
+
+        /* ===== Report Canvas (tetap terang untuk print & export) ===== */
+        .canvas-wrap {
+            padding: 26px 0 30px;
+            background:
+                repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 28px),
+                repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 28px);
+        }
+
+        .report-canvas {
+            background: #fbfbf9;
+            padding: 22px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #1c2230;
+            border-radius: 4px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.02);
+            position: relative;
+        }
+        .report-corner {
+            position: absolute; width: 14px; height: 14px; border-color: #1c2230; opacity: 0.7;
+        }
+        .report-corner.tl { top: 8px; left: 8px; border-top: 2px solid; border-left: 2px solid; }
+        .report-corner.tr { top: 8px; right: 8px; border-top: 2px solid; border-right: 2px solid; }
+        .report-corner.bl { bottom: 8px; left: 8px; border-bottom: 2px solid; border-left: 2px solid; }
+        .report-corner.br { bottom: 8px; right: 8px; border-bottom: 2px solid; border-right: 2px solid; }
+
+        .report-header { text-align: center; margin-bottom: 18px; border-bottom: 3px solid #14171f; padding-bottom: 14px; }
+        .report-header h2 {
+            font-family: var(--sans); font-weight: 700; font-size: 27px; letter-spacing: 0.06em;
+            text-transform: uppercase; color: #14171f; margin: 0 0 8px;
+        }
+        .report-meta {
+            display: flex; justify-content: center; gap: 22px; font-family: var(--mono);
+            font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #6b7280;
+        }
+        .report-meta b { color: #14171f; }
+
+        .diagram-container { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+        .route-row {
+    display: flex; flex-direction: column; border: 1px solid #14171f; background: #fff;
+    min-height: 100px; position: relative; break-inside: avoid; border-radius: 2px; overflow: hidden;
+      }
+
+        .route-label-side {
+    width: 100%; min-height: 42px; background: #14171f; color: #fff; padding: 9px 14px;
+    display: flex; flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 12px;
+    border-bottom: 1px solid #14171f; flex-shrink: 0; overflow: hidden;
+    position: relative;
+}
+.route-label-side .route-name {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
+}
+.route-label-side .route-stats {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0;
+}
+.route-label-side .route-stats span {
+    font-size: 9px; opacity: 0.65; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap;
+          }
+.route-label-side::before {
+    content: ''; position: absolute; left: 0; top: 0; right: 0; height: 3px; background: var(--accent);
+}
+
+        .chart-area-horizontal {
+            flex: 1; min-width: 0; position: relative; background-color: #ffffff;
+            display: flex; flex-direction: column; padding: 5px clamp(8px, 2vw, 26px);
+        }
+
+        .lane-horizontal { width: 100%; height: 22px; position: relative; margin-bottom: 3px; }
+
+        .bar-segment-horizontal {
+    position: absolute; height: 85%; top: 7.5%; border-radius: 2px;
+    display: flex; align-items: center; justify-content: flex-end;
+    z-index: 10; border: 1px solid rgba(0,0,0,0.25);
+    overflow: hidden; padding-right: 2px;
+}
+.bar-label {
+    writing-mode: vertical-rl; text-orientation: mixed;
+    color: #10120f; font-family: var(--mono); font-size: 6px; font-weight: 700;
+    line-height: 1; letter-spacing: -0.3px; white-space: nowrap;
+    max-height: 100%;
+}
+
+        .x-axis-top { position: relative; height: 22px; border-bottom: 2px solid #14171f; margin-bottom: 5px; }
+        .axis-tick {
+            position: absolute; transform: translateX(-50%); font-family: var(--mono);
+            font-size: 10.5px; font-weight: 700; color: #14171f; top: 0;
+        }
+        .grid-line { position: absolute; top: 22px; bottom: 0; width: 1px; background-color: #eef0ee; z-index: 1; }
+
+        /* ===== Data Table ===== */
+        .data-panel {
+            background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px;
+            overflow: hidden; margin-bottom: 40px;
+        }
+        .data-panel-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 13px 18px; border-bottom: 1px solid var(--border); background: var(--bg-elevated);
+        }
+        .data-panel-title {
+            font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+            text-transform: uppercase; color: var(--text-dim);
+        }
+        .data-table { width: 100%; border-collapse: collapse; font-family: var(--sans); }
+        .data-table thead th {
+            text-align: left; font-family: var(--mono); font-size: 9.5px; font-weight: 600;
+            letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-faint);
+            padding: 12px 18px; border-bottom: 1px solid var(--border); background: var(--bg-panel);
+        }
+        .data-table tbody td {
+            padding: 13px 18px; font-size: 13px; color: var(--text); border-bottom: 1px solid var(--border);
+        }
+        .data-table tbody tr { transition: background .1s ease; }
+        .data-table tbody tr:hover { background: var(--bg-elevated); }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+        .route-chip {
+            font-family: var(--mono); font-weight: 600; font-size: 11.5px; letter-spacing: 0.03em;
+            color: var(--accent2); text-transform: uppercase;
+        }
+        .val-mono { font-family: var(--mono); color: var(--text-dim); }
+        .row-actions { text-align: right; }
+        .row-actions button {
+            font-family: var(--mono); font-size: 9.5px; font-weight: 700; letter-spacing: 0.07em;
+            text-transform: uppercase; background: none; border: none; cursor: pointer; padding: 4px 8px;
+        }
+        .row-actions .edit-action { color: var(--info); }
+        .row-actions .edit-action:hover { text-decoration: underline; }
+        .row-actions .delete-action { color: var(--danger); }
+        .row-actions .delete-action:hover { text-decoration: underline; }
+        .empty-row td { text-align: center; padding: 40px 18px; color: var(--text-faint); font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+
+        /* ===== Status Bar ===== */
+        .status-bar {
+            position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+            background: #0d0f14; border-top: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 6px 18px; font-family: var(--mono); font-size: 10px; color: var(--text-faint);
+            letter-spacing: 0.05em;
+        }
+        .status-bar-group { display: flex; align-items: center; gap: 18px; }
+        .status-bar b { color: var(--text-dim); }
+        .status-bar .accent-txt { color: var(--accent); }
+        .status-bar .accent2-txt { color: var(--accent2); }
+
+        /* ===== Loader ===== */
+        #loader {
+            display: none; position: fixed; inset: 0; background: rgba(10,12,16,0.88); z-index: 9999;
+            flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(2px);
+        }
+        .loader-ring {
+            width: 46px; height: 46px; border-radius: 50%;
+            border: 3px solid var(--border-strong); border-top-color: var(--accent);
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loader p { margin-top: 18px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); }
+
+        /* ===== Modal ===== */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(5,6,9,0.75); z-index: 9998;
+            align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(3px);
+        }
+        .modal-box {
+            background: var(--bg-panel); border: 1px solid var(--border-strong); border-radius: 14px;
+            width: 100%; max-width: 620px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+        }
+        .modal-header { padding: 20px 22px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-family: var(--mono); font-weight: 700; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text); }
+        .modal-subtitle { font-family: var(--mono); font-size: 10px; color: var(--text-faint); margin-top: 4px; letter-spacing: 0.04em; }
+        .modal-close {
+            width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; background: var(--bg-elevated); border: 1px solid var(--border);
+            color: var(--text-dim); font-size: 16px; font-weight: 700; cursor: pointer;
+        }
+        .modal-close:hover { color: var(--text); border-color: var(--text-faint); }
+        .modal-body { padding: 18px 22px; overflow-y: auto; flex: 1; }
+        .modal-footer { padding: 18px 22px; border-top: 1px solid var(--border); background: var(--bg-elevated); }
+        .modal-footer-label { font-family: var(--mono); font-size: 9.5px; font-weight: 600; color: var(--text-faint); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+        .route-item {
+            display: flex; align-items: center; justify-content: space-between; padding: 13px 14px; margin-bottom: 8px;
+            border-radius: 8px; border: 1px solid var(--border); background: var(--bg-elevated);
+        }
+        .route-item-name { font-family: var(--sans); font-weight: 600; font-size: 13px; color: var(--text); }
+        .route-item-meta { font-family: var(--mono); font-size: 9.5px; color: var(--text-faint); letter-spacing: 0.04em; text-transform: uppercase; margin-top: 3px; }
+        .route-item-del { color: var(--danger); font-family: var(--mono); font-weight: 700; font-size: 9.5px; letter-spacing: 0.07em; text-transform: uppercase; background: none; border: none; cursor: pointer; flex-shrink: 0; margin-left: 14px; }
+        .route-item-del:hover { text-decoration: underline; }
+        .empty-routes { text-align: center; color: var(--text-faint); font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; padding: 40px 0; }
+
+        /* --- OPTIMASI PRINT (Target Setengah Halaman A4) --- */
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; padding: 0 !important; margin: 0 !important; }
+
+            .report-canvas {
+                border: 2px solid #000;
+                padding: 10px !important;
+                width: 100% !important;
+                min-width: unset !important;
+                transform: scale(0.55);
+                transform-origin: top left;
+                margin: 0 !important;
+                box-shadow: none !important;
+            }
+
+            .diagram-container {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 8px !important;
+            }
+            .route-row { min-height: 60px !important; }
+            .route-label-side { width: 100% !important; }
+
+            @page {
+                size: A4 portrait;
+                margin: 5mm;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .status-bar-group.secondary { display: none; }
+        }
+    </style>
+</head>
+<body class="p-4 pb-14">
+
+    <div id="loader">
+        <div class="loader-ring"></div>
+        <p>Memproses Data...</p>
+    </div>
+
+    <!-- Modal Pengaturan Rute -->
+    <div id="settingsModal" class="no-print modal-overlay">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div>
+                    <h3 class="modal-title">Pengaturan Rute</h3>
+                    <p class="modal-subtitle">Tambah atau hapus rute sesuai kebutuhan lapangan</p>
+                </div>
+                <button onclick="closeSettings()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="routeListContainer"></div>
+            <div class="modal-footer">
+                <p class="modal-footer-label">Tambah Rute Baru</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                    <div class="md:col-span-2">
+                        <input id="newRouteName" type="text" placeholder="Masukan Nama Rute" class="field-input">
+                    </div>
+                    <div>
+                        <input id="newRouteKm" type="number" step="0.01" min="0" placeholder="Panjang (KM)" class="field-input">
+                    </div>
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button onclick="addRoute()" class="btn-tool primary" style="flex:1; justify-content:center;">Tambah Rute</button>
+                    <button onclick="resetRoutesToDefault()" class="btn-tool ghost">Reset ke Default</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-shell">
+
+        <!-- Titlebar -->
+        <div class="titlebar no-print">
+            <div class="titlebar-left">
+                <div class="app-glyph">
+                    <svg class="w-4 h-4" fill="none" stroke="#1a0d02" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <div class="app-name">PKM ANALYST <span class="dim">/ diagram progres penyisiran &middot; v1.0</span></div>
+            </div>
+            <div class="titlebar-right">
+                <div class="status-pill"><span class="status-dot"></span> Sistem Aktif &middot; Lokal</div>
+            </div>
+        </div>
+
+        <!-- Menubar -->
+        <div class="menubar no-print">
+            <button onclick="openSettings()" class="btn-tool">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Pengaturan Rute
+            </button>
+
+            <div class="menu-divider"></div>
+
+            <label class="btn-tool accent2 file-tool">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16V4m0 0L8 8m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"></path></svg>
+                Import Database Lama
+                <input type="file" id="importInput" class="hidden" accept=".xlsx, .xls">
+            </label>
+
+            <button onclick="exportIntegratedExcel()" class="btn-tool">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"></path></svg>
+                Export Database &amp; Diagram
+            </button>
+
+            <div class="menu-divider"></div>
+
+            <button onclick="window.print()" class="btn-tool primary">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"></path></svg>
+                Print Laporan
+            </button>
+        </div>
+
+        <!-- Panel Input -->
+        <div class="panel panel-bottom no-print">
+            <form id="pkmForm" class="grid grid-cols-1 md:grid-cols-5 gap-5 items-end">
+                <input type="hidden" id="editId">
+                <div>
+                    <label class="field-label">Tanggal</label>
+                    <input type="date" id="tanggal" required class="field-input">
+                </div>
+                <div>
+                    <label class="field-label">Rute</label>
+                    <select id="ruteSelect" required class="field-input">
+                        <option value="">-- PILIH RUTE --</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3 md:col-span-2">
+                    <div>
+                        <label class="field-label">PKM Awal</label>
+                        <input type="number" id="pkmAwal" value="0" required class="field-input">
+                    </div>
+                    <div>
+                        <label class="field-label">PKM Akhir</label>
+                        <input type="number" id="pkmAkhir" required class="field-input">
+                    </div>
+                </div>
+                <button type="submit" id="submitBtn" class="btn-submit">Simpan</button>
+            </form>
+        </div>
+
+        <!-- AREA LAPORAN -->
+        <div class="canvas-wrap">
+            <div id="printArea" class="report-canvas mx-auto">
+                <span class="report-corner tl"></span><span class="report-corner tr"></span>
+                <span class="report-corner bl"></span><span class="report-corner br"></span>
+                <div class="report-header">
+                    <h2>Diagram Progres Penyisiran PKM</h2>
+                    <div class="report-meta">
+                        <span><b id="metaRouteCount">0</b> RUTE TERDAFTAR</span>
+                        <span><b id="metaEntryCount">0</b> KUNJUNGAN RUTE PKM</span>
+                    </div>
+                </div>
+
+                <div id="gridContainer" class="diagram-container"></div>
+            </div>
+        </div>
+
+        <!-- Tabel Database -->
+        <div class="data-panel no-print">
+            <div class="data-panel-head" style="flex-wrap: wrap; gap: 12px;">
+    <div style="display:flex; align-items:center; gap:10px;">
+        <span class="data-panel-title">Database Progres</span>
+        <span class="mono" style="font-size:10px; color: var(--text-faint); letter-spacing:0.06em;">TERURUT &middot; TANGGAL TERBARU</span>
+    </div>
+    <div class="filter-bar">
+        <select id="filterRoute" class="field-input filter-input" style="width:190px;">
+            <option value="">SEMUA RUTE</option>
+        </select>
+        <input type="date" id="filterDate" class="field-input filter-input" style="width:150px;">
+        <button onclick="clearFilters()" class="btn-tool ghost">Reset Filter</button>
+        <button onclick="clearAllData()" class="btn-tool danger">Hapus Semua Data</button>
+    </div>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Rute</th>
+                        <th style="text-align:center;">Rentang Meter</th>
+                        <th style="text-align:center;">Volume (M)</th>
+                        <th style="text-align:right;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="dbTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="status-bar no-print">
+        <div class="status-bar-group">
+            <span>PKM ANALYST <span class="accent-txt">v1.0</span></span>
+            <span class="status-bar-group secondary" style="display:flex; gap:18px;">
+                <span>RUTE: <b id="statusRouteCount">0</b></span>
+                <span>ENTRI: <b id="statusEntryCount">0</b></span>
+            </span>
+        </div>
+        <div class="status-bar-group">
+            <span class="accent2-txt">&#9679;</span>
+            <span>Penyimpanan Lokal</span>
+        </div>
+    </div>
+
+    <script>
+        // Konfigurasi 18 Rute Default (dipakai kalau belum ada pengaturan tersimpan / saat Reset ke Default)
+        function defaultRoutes() {
+            return [
+                { name: "CGS 1 - CGS 3", km: 3450, ticks: [0, 500, 1000, 2000, 3000, 3450] },
+                { name: "CGS 10", km: 5000, ticks: [0, 1000, 2000, 3000, 4000, 5000] },
+                { name: "CGS 3 - CGS 5", km: 4700, ticks: [0, 1000, 2000, 3000, 4000, 4700] },
+                { name: "DDP - DGF", km: 2500, ticks: [0, 500, 1000, 1500, 2000, 2500] },
+                { name: "DDP - P3", km: 6900, ticks: [0, 2000, 3000, 5000, 6000, 6900] },
+                { name: "DDP - P5", km: 6600, ticks: [0, 1000, 2000, 3000, 4000, 6600] },
+                { name: "DGF - CDGF", km: 8500, ticks: [0, 1000, 3000, 6000, 7000, 8500] },
+                { name: "INTAN GS", km: 5000, ticks: [0, 1000, 2000, 3000, 4000, 5000] },
+                { name: "LOADING LINE", km: 4700, ticks: [0, 1000, 2000, 3000, 4000, 4700] },
+                { name: "MENGGALA NORTH", km: 28000, ticks: [0, 5000, 9000, 14000, 23000, 28000] },
+                { name: "MENGGALA SOUTH", km: 2300, ticks: [0, 500, 1000, 1500, 2000, 2300] },
+                { name: "P3 - SS5", km: 700, ticks: [0, 100, 300, 500, 600, 700] },
+                { name: "P3 - SS6", km: 2300, ticks: [0, 500, 1000, 1500, 2000, 2300] },
+                { name: "P5 - MCTN", km: 8500, ticks: [0, 1000, 3000, 6000, 7000, 8500] },
+                { name: "PAGAR GP - CDGF", km: 40200, ticks: [0, 7000, 13000, 27000, 34000, 40200] },
+                { name: "PAGAR GS", km: 10200, ticks: [0, 2000, 3000, 7000, 9000, 10200] },
+                { name: "PEMBURU GS", km: 7000, ticks: [0, 1000, 3000, 5000, 6000, 7000] },
+                { name: "PETANI GS - DURI", km: 21000, ticks: [0, 4000, 8000, 15000, 18000, 21000] }
+            ].sort((a,b) => a.name.localeCompare(b.name));
+        }
+
+        // Bikin 6 titik sumbu (0 s/d panjang rute) yang rata, dipakai untuk rute baru hasil tambahan user
+        function genTicks(km) {
+            const step = km / 5;
+            return [0, Math.round(step), Math.round(step*2), Math.round(step*3), Math.round(step*4), km];
+        }
+// Konversi meter ke format KM untuk label di dalam batang diagram (contoh: 1000 -> "1 KM", 500 -> "0.5 KM")
+        function formatKm(meters) {
+            const km = meters / 1000;
+            let formatted = km.toFixed(1);
+            if (formatted.endsWith('.0')) formatted = formatted.slice(0, -2);
+            return formatted + ' KM';
+        }
+
+        function genRouteId() {
+            return 'route_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        }
+        function genRouteId() {
+            return 'route_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        }
+
+        function loadRoutes() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('pkm_routes_v27'));
+                if (Array.isArray(saved) && saved.length > 0) {
+                    return saved.map(r => r.id ? r : { ...r, id: genRouteId() });
+                }
+            } catch (e) {}
+            return defaultRoutes().map(r => ({ ...r, id: genRouteId() }));
+        }
+
+        function saveRoutes() {
+            routeConfig.sort((a,b) => a.name.localeCompare(b.name));
+            localStorage.setItem('pkm_routes_v27', JSON.stringify(routeConfig));
+        }
+
+        let routeConfig = loadRoutes();
+let db = JSON.parse(localStorage.getItem('pkm_v27_data')) || [];
+let filterRoute = '';
+let filterDate = '';
+
+        window.onload = () => {
+    renderRouteOptions();
+    populateFilterRoute();
+    document.getElementById('tanggal').valueAsDate = new Date();
+    refresh();
+    setupImport();
+    setupFilters();
+};
+
+        function renderRouteOptions() {
+            const select = document.getElementById('ruteSelect');
+            const current = select.value;
+            select.innerHTML = '<option value="">-- PILIH RUTE --</option>';
+            routeConfig.forEach(r => {
+                const kmFormatted = (r.km / 1000).toLocaleString('id-ID');
+                select.innerHTML += `<option value="${r.name}">${r.name} (${kmFormatted} KM)</option>`;
+            });
+            if (routeConfig.some(r => r.name === current)) select.value = current;
+        }
+
+        function refresh() {
+            renderDiagrams();
+            renderTable();
+            updateStatusMeta();
+        }
+
+        // Update angka-angka meta di header laporan & status bar (tampilan saja, tidak mengubah logika data)
+        function updateStatusMeta() {
+            const routeCountEls = [document.getElementById('metaRouteCount'), document.getElementById('statusRouteCount')];
+            const entryCountEls = [document.getElementById('metaEntryCount'), document.getElementById('statusEntryCount')];
+            routeCountEls.forEach(el => { if (el) el.innerText = routeConfig.length; });
+            entryCountEls.forEach(el => { if (el) el.innerText = db.length; });
+        }
+
+        /* ===== Pengaturan Rute (Tambah / Hapus Segment) ===== */
+        function openSettings() {
+            renderRouteSettings();
+            document.getElementById('settingsModal').style.display = 'flex';
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function renderRouteSettings() {
+            const c = document.getElementById('routeListContainer');
+            if (routeConfig.length === 0) {
+                c.innerHTML = `<p class="empty-routes">Belum ada rute</p>`;
+                return;
+            }
+            c.innerHTML = routeConfig.map(r => {
+                const count = db.filter(e => e.route === r.name).length;
+                return `
+                    <div class="route-item">
+                        <div>
+                            <p class="route-item-name">${r.name}</p>
+                            <p class="route-item-meta">${(r.km/1000).toLocaleString('id-ID')} KM${count ? ` &bull; ${count} data tersimpan` : ''}</p>
+                        </div>
+                        <button onclick="deleteRoute('${r.id}')" class="route-item-del">Hapus</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addRoute() {
+            const nameInput = document.getElementById('newRouteName');
+            const kmInput = document.getElementById('newRouteKm');
+            const name = nameInput.value.trim().toUpperCase();
+            const kmVal = parseFloat(kmInput.value);
+
+            if (!name) { alert('Nama rute belum diisi.'); return; }
+            if (!kmVal || kmVal <= 0) { alert('Panjang rute (KM) harus lebih dari 0.'); return; }
+            if (routeConfig.some(r => r.name === name)) { alert('Nama rute sudah ada, gunakan nama lain.'); return; }
+
+            const km = Math.round(kmVal * 1000);
+            routeConfig.push({ id: genRouteId(), name, km, ticks: genTicks(km) });
+            saveRoutes();
+            nameInput.value = '';
+            kmInput.value = '';
+
+            renderRouteSettings();
+            renderRouteOptions();
+            populateFilterRoute();
+            refresh();
+        }
+
+        function deleteRoute(id) {
+            const r = routeConfig.find(x => x.id === id);
+            if (!r) return;
+            const count = db.filter(e => e.route === r.name).length;
+            const msg = count > 0
+                ? `Rute "${r.name}" memiliki ${count} data progres. Data tersebut tetap ada di database tapi tidak lagi tampil di diagram. Lanjutkan hapus rute?`
+                : `Hapus rute "${r.name}"?`;
+            if (!confirm(msg)) return;
+
+            routeConfig = routeConfig.filter(x => x.id !== id);
+            saveRoutes();
+
+            renderRouteSettings();
+            renderRouteOptions();
+            populateFilterRoute();
+            refresh();
+        }
+
+        function resetRoutesToDefault() {
+            if (!confirm('Kembalikan daftar rute ke 18 rute default? Rute tambahan yang sudah dibuat akan dihapus.')) return;
+            routeConfig = defaultRoutes().map(r => ({ ...r, id: genRouteId() }));
+            saveRoutes();
+
+            renderRouteSettings();
+            renderRouteOptions();
+            populateFilterRoute();
+            refresh();
+        }
+
+        function renderDiagrams() {
+            const container = document.getElementById('gridContainer');
+            container.innerHTML = '';
+
+            routeConfig.forEach((r) => {
+                if (filterRoute && r.name !== filterRoute) return;
+                const rData = db.filter(e => e.route === r.name && (!filterDate || e.tgl === filterDate)).sort((a,b) => a.awal - b.awal);
+                let rawLanes = [];
+
+                // Logika Jalur
+                rData.forEach(entry => {
+                    let segments = [{ start: entry.awal, end: entry.akhir }];
+                    for (let l = 0; l < 10; l++) {
+                        if (!rawLanes[l]) rawLanes[l] = [];
+                        let nextQueue = [];
+                        segments.forEach(seg => {
+                            let overlaps = rawLanes[l].filter(ex => seg.start < ex.end && seg.end > ex.start);
+                            if (overlaps.length === 0) {
+                                rawLanes[l].push(seg);
+                            } else {
+                                let cur = seg.start;
+                                overlaps.sort((a,b) => a.start - b.start);
+                                overlaps.forEach(ov => {
+                                    if (cur < ov.start) rawLanes[l].push({ start: cur, end: ov.start });
+                                    let colStart = Math.max(cur, ov.start);
+                                    let colEnd = Math.min(seg.end, ov.end);
+                                    if (colStart < colEnd) nextQueue.push({ start: colStart, end: colEnd });
+                                    cur = Math.max(cur, ov.end);
+                                });
+                                if (cur < seg.end) rawLanes[l].push({ start: cur, end: seg.end });
+                            }
+                        });
+                        segments = nextQueue;
+                        if (segments.length === 0) break;
+                    }
+                });
+
+                // Akumulasi total meter yang sudah disisir (dijumlah dari semua entri, termasuk yang tumpang tindih)
+                // dan jumlah berapa kali penyisiran dilakukan di rute ini
+                const akumulasiMeter = rData.reduce((sum, e) => sum + (e.akhir - e.awal), 0);
+                const jumlahPenyisiran = rData.length;
+
+                const row = document.createElement('div');
+                row.className = 'route-row';
+
+                const labelSide = document.createElement('div');
+                labelSide.className = 'route-label-side';
+                labelSide.innerHTML = `
+                    <div class="route-name text-[16px] font-black uppercase leading-tight tracking-tight">${r.name}</div>
+                    <div class="route-stats">
+                        <span>AKUMULASI: ${akumulasiMeter.toLocaleString('id-ID')} M</span>
+                        <span>KUNJUNGAN RUTE: ${jumlahPenyisiran}X</span>
+                    </div>
+                `;
+
+                const chartArea = document.createElement('div');
+                chartArea.className = 'chart-area-horizontal';
+
+                const xAxis = document.createElement('div');
+                xAxis.className = 'x-axis-top';
+                r.ticks.forEach((tickVal) => {
+                    const pos = (tickVal / r.km) * 100;
+                    const tickLabel = document.createElement('div');
+                    tickLabel.className = 'axis-tick';
+                    tickLabel.style.left = `${pos}%`;
+                    tickLabel.innerText = tickVal.toLocaleString('id-ID');
+                    xAxis.appendChild(tickLabel);
+
+                    const gridLine = document.createElement('div');
+                    gridLine.className = 'grid-line';
+                    gridLine.style.left = `${pos}%`;
+                    chartArea.appendChild(gridLine);
+                });
+                chartArea.appendChild(xAxis);
+
+                rawLanes.forEach((laneData) => {
+                    if (laneData.length === 0) return;
+                    laneData.sort((a,b) => a.start - b.start);
+                    let merged = [];
+                    let cur = { ...laneData[0] };
+                    for (let i = 1; i < laneData.length; i++) {
+                        if (laneData[i].start <= cur.end) {
+                            cur.end = Math.max(cur.end, laneData[i].end);
+                        } else {
+                            merged.push(cur);
+                            cur = { ...laneData[i] };
+                        }
+                    }
+                    merged.push(cur);
+
+                    const laneSum = merged.reduce((acc, curr) => acc + (curr.end - curr.start), 0);
+                    const laneColor = laneSum >= r.km ? '#3ddc84' : '#f0b429';
+
+                    const laneDiv = document.createElement('div');
+                    laneDiv.className = 'lane-horizontal';
+
+                    merged.forEach(segment => {
+                        const bar = document.createElement('div');
+                        bar.className = 'bar-segment-horizontal';
+                        const w = ((segment.end - segment.start) / r.km) * 100;
+                        const l = (segment.start / r.km) * 100;
+                        bar.style.width = `${Math.max(w, 0.4)}%`;
+                        bar.style.left = `${l}%`;
+                        bar.style.backgroundColor = laneColor;
+                        if(w > 2.5) bar.innerHTML = `<span class="bar-label">${formatKm(segment.end - segment.start)}</span>`;
+                        laneDiv.appendChild(bar);
+                    });
+                    chartArea.appendChild(laneDiv);
+                });
+
+                row.appendChild(labelSide);
+                row.appendChild(chartArea);
+                container.appendChild(row);
+            });
+        }
+
+        document.getElementById('pkmForm').onsubmit = (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editId').value;
+            const entry = {
+                id: id || Date.now().toString(),
+                tgl: document.getElementById('tanggal').value,
+                route: document.getElementById('ruteSelect').value,
+                awal: parseInt(document.getElementById('pkmAwal').value),
+                akhir: parseInt(document.getElementById('pkmAkhir').value)
+            };
+            if(entry.akhir <= entry.awal) return alert("PKM Akhir harus lebih besar!");
+            if(id) {
+                const idx = db.findIndex(x => x.id === id);
+                db[idx] = entry;
+            } else {
+                db.push(entry);
+            }
+            localStorage.setItem('pkm_v27_data', JSON.stringify(db));
+            resetForm();
+            refresh();
+        };
+
+        function renderTable() {
+            const tbody = document.getElementById('dbTable');
+            tbody.innerHTML = '';
+            let filtered = [...db];
+            if (filterRoute) filtered = filtered.filter(e => e.route === filterRoute);
+            if (filterDate) filtered = filtered.filter(e => e.tgl === filterDate);
+            const sorted = filtered.sort((a,b) => new Date(b.tgl) - new Date(a.tgl));
+            if (sorted.length === 0) {
+                tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Belum ada data progres</td></tr>`;
+                return;
+            }
+            sorted.forEach(e => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="val-mono">${e.tgl}</td>
+                        <td><span class="route-chip">${e.route}</span></td>
+                        <td class="val-mono" style="text-align:center;">${e.awal} - ${e.akhir}</td>
+                        <td class="val-mono" style="text-align:center; color: var(--text); font-weight:600;">${(e.akhir - e.awal).toLocaleString()}</td>
+                        <td class="row-actions">
+                            <button onclick="editItem('${e.id}')" class="edit-action">Ubah</button>
+                            <button onclick="deleteItem('${e.id}')" class="delete-action">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function exportIntegratedExcel() {
+            document.getElementById('loader').style.display = 'flex';
+            try {
+                const canvas = await html2canvas(document.getElementById('printArea'), { scale: 2 });
+                const base64 = canvas.toDataURL('image/png');
+                const wb = new ExcelJS.Workbook();
+                const wsData = wb.addWorksheet('DATABASE');
+                wsData.columns = [
+                    { header: 'TANGGAL', key: 'tgl', width: 15 }, { header: 'RUTE', key: 'route', width: 35 },
+                    { header: 'PKM AWAL', key: 'awal', width: 15 }, { header: 'PKM AKHIR', key: 'akhir', width: 15 },
+                    { header: 'VOLUME', key: 'vol', width: 12 }
+                ];
+                db.forEach(e => wsData.addRow({ ...e, vol: e.akhir-e.awal }));
+                const wsChart = wb.addWorksheet('DIAGRAM');
+                const img = wb.addImage({ base64: base64, extension: 'png' });
+                wsChart.addImage(img, { tl: { col: 1, row: 1 }, ext: { width: canvas.width/2.5, height: canvas.height/2.5 } });
+                const buffer = await wb.xlsx.writeBuffer();
+                saveAs(new Blob([buffer]), `REPORT_PKM_V27_${Date.now()}.xlsx`);
+            } catch (err) { alert("Ekspor Gagal."); }
+            document.getElementById('loader').style.display = 'none';
+        }
+
+        function setupImport() {
+            document.getElementById('importInput').onchange = (e) => {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const workbook = XLSX.read(new Uint8Array(evt.target.result), {type: 'array'});
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                    const mapped = json.map(r => ({
+                        id: Math.random().toString(36).substr(2,9),
+                        tgl: r.TANGGAL || new Date().toISOString().split('T')[0],
+                        route: r.RUTE || r.UNIT_RUTE,
+                        awal: parseInt(r.AWAL || r['PKM AWAL'] || 0),
+                        akhir: parseInt(r.AKHIR || r['PKM AKHIR'] || 0)
+                    })).filter(x => x.route && x.akhir > x.awal);
+                    db = [...db, ...mapped];
+                    localStorage.setItem('pkm_v27_data', JSON.stringify(db));
+                    refresh();
+                };
+                reader.readAsArrayBuffer(e.target.files[0]);
+            };
+        }
+
+        function editItem(id) {
+            const e = db.find(x => x.id === id);
+            document.getElementById('editId').value = e.id;
+            document.getElementById('tanggal').value = e.tgl;
+            document.getElementById('ruteSelect').value = e.route;
+            document.getElementById('pkmAwal').value = e.awal;
+            document.getElementById('pkmAkhir').value = e.akhir;
+            document.getElementById('submitBtn').innerText = "Update Data";
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        function deleteItem(id) {
+            if(confirm("Hapus data?")) {
+                db = db.filter(x => x.id !== id);
+                localStorage.setItem('pkm_v27_data', JSON.stringify(db));
+                refresh();
+            }
+        }
+
+      function populateFilterRoute() {
+            const select = document.getElementById('filterRoute');
+            if (!select) return;
+            const current = select.value;
+            select.innerHTML = '<option value="">SEMUA RUTE</option>';
+            routeConfig.forEach(r => {
+                select.innerHTML += `<option value="${r.name}">${r.name}</option>`;
+            });
+            if (routeConfig.some(r => r.name === current)) select.value = current;
+        }
+
+        function setupFilters() {
+            document.getElementById('filterRoute').onchange = (e) => {
+                filterRoute = e.target.value;
+                renderDiagrams();
+                renderTable();
+            };
+            document.getElementById('filterDate').onchange = (e) => {
+                filterDate = e.target.value;
+                renderDiagrams();
+                renderTable();
+            };
+        }
+
+        function clearFilters() {
+            filterRoute = '';
+            filterDate = '';
+            document.getElementById('filterRoute').value = '';
+            document.getElementById('filterDate').value = '';
+            renderDiagrams();
+            renderTable();
+        }
+
+        function clearAllData() {
+            if (db.length === 0) { alert('Tidak ada data untuk dihapus.'); return; }
+            if (!confirm(`Hapus SEMUA ${db.length} data progres? Tindakan ini tidak bisa dibatalkan.`)) return;
+            db = [];
+            localStorage.setItem('pkm_v27_data', JSON.stringify(db));
+            refresh();
+        }
+        function resetForm() {
+            document.getElementById('pkmForm').reset();
+            document.getElementById('editId').value = "";
+            document.getElementById('pkmAwal').value = 0;
+            document.getElementById('submitBtn').innerText = "Simpan";
+            document.getElementById('tanggal').valueAsDate = new Date();
+        }
+    </script>
+</body>
+</html>
