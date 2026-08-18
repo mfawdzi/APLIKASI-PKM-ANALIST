@@ -60,6 +60,7 @@
 
         .mono { font-family: var(--mono); }
 
+        
         /* ===== App Chrome ===== */
         .app-shell { max-width: 1760px; margin: 0 auto; padding: 18px 20px 60px; }
 
@@ -94,6 +95,35 @@
         }
         @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
 
+        /* =========================================================
+   HEADER + MENU + FORM TETAP TERLIHAT SAAT SCROLL
+   ========================================================= */
+
+/* =========================================================
+   HEADER + MENU + FORM TETAP DI ATAS SAAT SCROLL
+   ========================================================= */
+
+.sticky-top-panel {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+
+    width: calc(100% - 40px);
+    max-width: 1760px;
+
+    z-index: 1000;
+
+    background: var(--bg);
+
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* Memberikan ruang untuk header fixed */
+.app-shell {
+    padding-top: 190px !important;
+}
+
         /* ===== Menu / Toolbar ===== */
         .menubar {
             display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
@@ -116,12 +146,223 @@
         .btn-tool.accent2 { background: transparent; border-color: var(--accent2); color: var(--accent2); }
         .btn-tool.accent2:hover { background: var(--accent2-soft); }
         .btn-tool.ghost { background: transparent; }
-      .btn-tool.danger { background: transparent; border-color: var(--danger); color: var(--danger); }
-.btn-tool.danger:hover { background: rgba(255,98,112,0.12); }
-.filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.filter-input { padding: 8px 10px !important; font-size: 11px !important; width: auto; }
-        .btn-tool.file-tool { position: relative; }
+        .btn-tool.danger { background: transparent; border-color: var(--danger); color: var(--danger); }
+        .btn-tool.danger:hover { background: rgba(255,98,112,0.12); }
+        .filter-bar {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100%;
+    flex-wrap: nowrap !important;
+}
 
+/* Rute */
+#filterRoute {
+    width: 190px !important;
+    flex: 0 0 190px;
+}
+
+/* Kunjungan */
+#filterVisitCount {
+    width: 150px;
+    flex: 0 0 150px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Tanggal */
+#filterDateFrom,
+#filterDateTo {
+    width: 145px !important;
+    flex: 0 0 145px;
+}
+
+/* Semua tombol */
+.filter-bar {
+    display: grid !important;
+
+    grid-template-columns:
+        1.15fr
+        0.85fr
+        0.95fr
+        0.95fr
+        0.85fr
+        1.05fr
+        0.95fr;
+
+    align-items: center;
+    gap: 10px;
+
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.filter-bar > * {
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box;
+}
+
+/* SEMUA RUTE */
+#filterRoute {
+    height: 42px !important;
+}
+
+/* KUNJUNGAN */
+#filterVisitCount {
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* TANGGAL */
+#filterDateFrom,
+#filterDateTo {
+    height: 42px !important;
+}
+
+/* SEMUA TOMBOL */
+.filter-bar button {
+    height: 42px !important;
+    margin: 0 !important;
+    padding: 0 10px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* TAMPILKAN DATA */
+#toggleDataBtn {
+    margin: 0 !important;
+}=====================================================
+   HEADER 2 BARIS - TAMPILAN ELEGAN
+   ========================================================= */
+
+.titlebar {
+    min-height: 58px;
+    padding: 8px 14px;
+}
+
+.titlebar-left {
+    gap: 10px;
+}
+
+.app-glyph {
+    width: 34px;
+    height: 34px;
+}
+
+.app-name {
+    font-size: 13px;
+}
+
+/* Tombol aksi di baris judul */
+.titlebar-actions {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.titlebar-actions .btn-tool {
+    height: 34px;
+    padding: 7px 11px;
+    font-size: 9px;
+    white-space: nowrap;
+}
+
+/* Baris input kedua */
+.panel-bottom {
+    padding: 12px 14px;
+}
+
+.panel-bottom form {
+    display: grid !important;
+    grid-template-columns:
+        180px
+        minmax(260px, 1.5fr)
+        170px
+        170px
+        140px !important;
+    gap: 12px !important;
+    align-items: end;
+}
+
+.panel-bottom .field-label {
+    font-size: 8.5px;
+    margin-bottom: 5px;
+}
+
+.panel-bottom .field-input {
+    height: 38px;
+    padding: 8px 10px;
+    font-size: 11px;
+}
+
+.panel-bottom .btn-submit {
+    height: 38px;
+    font-size: 10px;
+}
+
+/* Menubar lama tidak dipakai lagi */
+.sticky-top-panel > .menubar {
+    display: none !important;
+}
+
+/* Supaya panel atas tetap rapi */
+.sticky-top-panel {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* Tampilan tablet */
+@media (max-width: 1100px) {
+    .panel-bottom form {
+        grid-template-columns:
+            150px
+            minmax(200px, 1fr)
+            140px
+            140px
+            120px !important;
+    }
+
+    .titlebar-actions .btn-tool {
+        padding: 6px 8px;
+    }
+}
+
+/* Tampilan HP */
+@media (max-width: 800px) {
+
+    .titlebar {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .titlebar-actions {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 2px;
+    }
+
+    .panel-bottom form {
+        grid-template-columns: 1fr 1fr !important;
+    }
+
+    .panel-bottom form > div:nth-of-type(2) {
+        grid-column: span 2;
+    }
+
+    .panel-bottom form > div:nth-of-type(3) {
+        grid-column: span 2;
+    }
+
+    .panel-bottom form > button {
+        grid-column: span 2;
+    }
+}
         /* ===== Input / Inspector Panel ===== */
         .panel {
             background: var(--bg-panel);
@@ -201,6 +442,15 @@
 .route-label-side .route-name {
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
 }
+.route-label-side .route-length {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #ffffff;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
 .route-label-side .route-stats {
     display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0;
 }
@@ -225,10 +475,8 @@
     overflow: hidden; padding-right: 2px;
 }
 .bar-label {
-    writing-mode: vertical-rl; text-orientation: mixed;
-    color: #10120f; font-family: var(--mono); font-size: 6px; font-weight: 700;
-    line-height: 1; letter-spacing: -0.3px; white-space: nowrap;
-    max-height: 100%;
+    color: #10120f; font-family: var(--mono); font-size: 9px; font-weight: 700;
+    line-height: 1; white-space: nowrap;
 }
 
         .x-axis-top { position: relative; height: 22px; border-bottom: 2px solid #14171f; margin-bottom: 5px; }
@@ -408,127 +656,470 @@
         </div>
     </div>
 
-    <div class="app-shell">
+<div class="app-shell">
 
-        <!-- Titlebar -->
+    <div class="sticky-top-panel">
+
+        <!-- =====================================================
+             TITLEBAR
+             ===================================================== -->
         <div class="titlebar no-print">
+
             <div class="titlebar-left">
+
                 <div class="app-glyph">
-                    <svg class="w-4 h-4" fill="none" stroke="#1a0d02" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    <svg class="w-4 h-4"
+                         fill="none"
+                         stroke="#1a0d02"
+                         viewBox="0 0 24 24">
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2.5"
+                              d="M13 10V3L4 14h7v7l9-11h-7z">
+                        </path>
+
+                    </svg>
                 </div>
-                <div class="app-name">PKM ANALYST <span class="dim">/ diagram progres penyisiran &middot; v1.0</span></div>
+
+                <div class="app-name">
+                    PKM ANALYST
+                    <span class="dim">
+                        / diagram progres penyisiran &middot; v1.0
+                    </span>
+                </div>
+
             </div>
+
             <div class="titlebar-right">
-                <div class="status-pill"><span class="status-dot"></span> Sistem Aktif &middot; Lokal</div>
-            </div>
+
+    <div class="titlebar-actions">
+
+        <!-- PENGATURAN RUTE -->
+        <button onclick="openSettings()" class="btn-tool">
+            ⚙ Pengaturan
+        </button>
+
+        <!-- IMPORT DATABASE -->
+        <label class="btn-tool accent2 file-tool">
+
+            <span>↑ Import</span>
+
+            <input
+                type="file"
+                id="importInput"
+                class="hidden"
+                accept=".xlsx, .xls">
+
+        </label>
+
+        <!-- EXPORT DATABASE -->
+        <button
+            onclick="exportIntegratedExcel()"
+            class="btn-tool">
+
+            ↓ Export
+
+        </button>
+
+        <!-- PRINT -->
+        <button
+            onclick="window.print()"
+            class="btn-tool primary">
+
+            🖨 Print
+
+        </button>
+
+        <!-- STATUS -->
+        <div class="status-pill">
+            <span class="status-dot"></span>
+            Sistem Aktif
         </div>
 
-        <!-- Menubar -->
+    </div>
+
+</div>
+
+        </div>
+
+
+        <!-- =====================================================
+             MENUBAR
+             ===================================================== -->
         <div class="menubar no-print">
+
             <button onclick="openSettings()" class="btn-tool">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+
+                <svg fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+
+                    <path stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31.826-2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066-2.573c.94-1.543-.826-3.31-2.37-2.37a1.724 1.724 0 00-2.572-1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573 1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                    </path>
+
+                    <path stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z">
+                    </path>
+
+                </svg>
+
                 Pengaturan Rute
+
             </button>
 
+
             <div class="menu-divider"></div>
+
 
             <label class="btn-tool accent2 file-tool">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16V4m0 0L8 8m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"></path></svg>
+
+                <svg fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+
+                    <path stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 16V4m0 0L8 8m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2">
+                    </path>
+
+                </svg>
+
                 Import Database Lama
-                <input type="file" id="importInput" class="hidden" accept=".xlsx, .xls">
+
+                <input type="file"
+                       id="importInput"
+                       class="hidden"
+                       accept=".xlsx, .xls">
+
             </label>
 
+
             <button onclick="exportIntegratedExcel()" class="btn-tool">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"></path></svg>
+
+                <svg fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+
+                    <path stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3">
+                    </path>
+
+                </svg>
+
                 Export Database &amp; Diagram
+
             </button>
+
 
             <div class="menu-divider"></div>
 
+
             <button onclick="window.print()" class="btn-tool primary">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"></path></svg>
+
+                <svg fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+
+                    <path stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z">
+                    </path>
+
+                </svg>
+
                 Print Laporan
+
             </button>
+
         </div>
 
-        <!-- Panel Input -->
+
+        <!-- =====================================================
+             PANEL INPUT
+             ===================================================== -->
         <div class="panel panel-bottom no-print">
-            <form id="pkmForm" class="grid grid-cols-1 md:grid-cols-5 gap-5 items-end">
+
+           <form id="pkmForm">
+
                 <input type="hidden" id="editId">
+
+
+                <!-- TANGGAL -->
                 <div>
-                    <label class="field-label">Tanggal</label>
-                    <input type="date" id="tanggal" required class="field-input">
+
+                    <label class="field-label">
+                        Tanggal
+                    </label>
+
+                    <input type="date"
+                           id="tanggal"
+                           required
+                           class="field-input">
+
                 </div>
+
+
+                <!-- RUTE -->
                 <div>
-                    <label class="field-label">Rute</label>
-                    <select id="ruteSelect" required class="field-input">
-                        <option value="">-- PILIH RUTE --</option>
+
+                    <label class="field-label">
+                        Rute
+                    </label>
+
+                    <select id="ruteSelect"
+                            required
+                            class="field-input">
+
+                        <option value="">
+                            -- PILIH RUTE --
+                        </option>
+
                     </select>
+
                 </div>
+
+
+                <!-- PKM AWAL & PKM AKHIR -->
                 <div class="grid grid-cols-2 gap-3 md:col-span-2">
+
                     <div>
-                        <label class="field-label">PKM Awal</label>
-                        <input type="number" id="pkmAwal" value="0" required class="field-input">
+
+                        <label class="field-label">
+                            PKM Awal
+                        </label>
+
+                        <input type="number"
+                               id="pkmAwal"
+                               value="0"
+                               required
+                               class="field-input">
+
                     </div>
+
+
                     <div>
-                        <label class="field-label">PKM Akhir</label>
-                        <input type="number" id="pkmAkhir" required class="field-input">
+
+                        <label class="field-label">
+                            PKM Akhir
+                        </label>
+
+                        <input type="number"
+                               id="pkmAkhir"
+                               required
+                               class="field-input">
+
                     </div>
+
                 </div>
-                <button type="submit" id="submitBtn" class="btn-submit">Simpan</button>
+
+
+                <!-- SIMPAN -->
+                <button type="submit"
+                        id="submitBtn"
+                        class="btn-submit">
+
+                    Simpan
+
+                </button>
+
             </form>
+
         </div>
 
-        <!-- AREA LAPORAN -->
-        <div class="canvas-wrap">
-            <div id="printArea" class="report-canvas mx-auto">
-                <span class="report-corner tl"></span><span class="report-corner tr"></span>
-                <span class="report-corner bl"></span><span class="report-corner br"></span>
-                <div class="report-header">
-                    <h2>Diagram Progres Penyisiran PKM</h2>
-                    <div class="report-meta">
-                        <span><b id="metaRouteCount">0</b> RUTE TERDAFTAR</span>
-                        <span><b id="metaEntryCount">0</b> KUNJUNGAN RUTE PKM</span>
-                    </div>
+    </div>
+    <!-- =====================================================
+         END STICKY TOP PANEL
+         ===================================================== -->
+
+
+    <!-- =====================================================
+         AREA LAPORAN / DIAGRAM
+         ===================================================== -->
+    <div class="canvas-wrap">
+
+        <div id="printArea"
+             class="report-canvas mx-auto">
+
+            <span class="report-corner tl"></span>
+            <span class="report-corner tr"></span>
+            <span class="report-corner bl"></span>
+            <span class="report-corner br"></span>
+
+
+            <div class="report-header">
+
+                <h2>
+                    Diagram Progres Penyisiran PKM
+                </h2>
+
+                <div class="report-meta">
+
                 </div>
 
-                <div id="gridContainer" class="diagram-container"></div>
             </div>
+
+
+            <div id="gridContainer"
+                 class="diagram-container">
+            </div>
+
         </div>
 
-        <!-- Tabel Database -->
-        <div class="data-panel no-print">
-            <div class="data-panel-head" style="flex-wrap: wrap; gap: 12px;">
-    <div style="display:flex; align-items:center; gap:10px;">
-        <span class="data-panel-title">Database Progres</span>
-        <span class="mono" style="font-size:10px; color: var(--text-faint); letter-spacing:0.06em;">TERURUT &middot; TANGGAL TERBARU</span>
     </div>
+
+
+    <!-- =====================================================
+         TABEL DATABASE
+         ===================================================== -->
+    <div class="data-panel no-print">
+
+        <div class="data-panel-head"
+             style="flex-wrap: wrap; gap: 12px;">
+
+            <div style="display:flex; align-items:center; gap:10px;">
+
+    <span class="data-panel-title">
+        Database Progres
+    </span>
+
+    <span class="mono"
+          style="font-size:10px;
+                 color:var(--text-faint);
+                 letter-spacing:0.06em;">
+        TERURUT &middot; TANGGAL TERBARU
+    </span>
+
+
+</div>
+
+<div id="databaseContent">
+
     <div class="filter-bar">
-        <select id="filterRoute" class="field-input filter-input" style="width:190px;">
-            <option value="">SEMUA RUTE</option>
-        </select>
-        <input type="date" id="filterDateFrom" class="field-input filter-input" style="width:135px;" title="Dari Tanggal">
-        <input type="date" id="filterDateTo" class="field-input filter-input" style="width:135px;" title="Sampai Tanggal">
-        <button onclick="clearFilters()" class="btn-tool ghost">Reset Filter</button>
-        <button onclick="clearAllData()" class="btn-tool danger">Hapus Semua Data</button>
-    </div>
-            </div>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Tanggal</th>
-                        <th>Rute</th>
-                        <th style="text-align:center;">Rentang Meter</th>
-                        <th style="text-align:center;">Volume (M)</th>
-                        <th style="text-align:right;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="dbTable"></tbody>
-            </table>
-        </div>
-    </div>
 
-    <!-- Status bar -->
+
+                <!-- FILTER RUTE -->
+                <select id="filterRoute"
+                        class="field-input filter-input"
+                        style="width:190px;">
+
+                    <option value="">
+                        SEMUA RUTE
+                    </option>
+
+                </select>
+
+
+                <!-- JUMLAH KUNJUNGAN -->
+                <span id="filterVisitCount"
+                      class="mono"
+                      style="font-size:10px;
+                             color:var(--accent2);
+                             font-weight:700;
+                             letter-spacing:0.06em;
+                             white-space:nowrap;">
+
+                    KUNJUNGAN RUTE: 0X
+
+                </span>
+
+
+                <!-- DARI TANGGAL -->
+                <input type="date"
+                       id="filterDateFrom"
+                       class="field-input filter-input"
+                       style="width:135px;"
+                       title="Dari Tanggal">
+
+
+                <!-- SAMPAI TANGGAL -->
+                <input type="date"
+                       id="filterDateTo"
+                       class="field-input filter-input"
+                       style="width:135px;"
+                       title="Sampai Tanggal">
+
+
+                <!-- RESET FILTER -->
+                <button onclick="clearFilters()"
+                        class="btn-tool ghost">
+
+                    Reset Filter
+
+                </button>
+
+
+                <!-- HAPUS SEMUA -->
+                <button onclick="clearAllData()"
+                        class="btn-tool danger">
+
+                    Hapus Semua Data
+
+                </button>
+                <button id="toggleDataBtn"
+        onclick="toggleDatabase()"
+        class="btn-tool ghost"
+        style="padding:6px 10px; font-size:9px;">
+
+    ▼ Tampilkan Data
+
+</button>
+            </div>
+
+        </div>
+
+
+        <!-- TABEL -->
+       <table id="databaseTable" class="data-table" style="display:none;">
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Tanggal
+                    </th>
+
+                    <th>
+                        Rute
+                    </th>
+
+                    <th style="text-align:center;">
+                        Rentang Meter
+                    </th>
+
+                    <th style="text-align:center;">
+                        Volume (M)
+                    </th>
+
+                    <th style="text-align:right;">
+                        Aksi
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody id="dbTable">
+            </tbody>
+
+       </table>
+
+    </div>
+    <!-- END databaseContent -->
+
+</div>
+<!-- END data-panel -->
     <div class="status-bar no-print">
         <div class="status-bar-group">
             <span>PKM ANALYST <span class="accent-txt">v1.0</span></span>
@@ -578,7 +1169,7 @@
             const km = meters / 1000;
             let formatted = km.toFixed(1);
             if (formatted.endsWith('.0')) formatted = formatted.slice(0, -2);
-            return formatted + ' KM';
+            return formatted + 'KM';
         }
 
         function genRouteId() {
@@ -636,12 +1227,75 @@ let filterRoute = '';
         }
 
         // Update angka-angka meta di header laporan & status bar (tampilan saja, tidak mengubah logika data)
-        function updateStatusMeta() {
-            const routeCountEls = [document.getElementById('metaRouteCount'), document.getElementById('statusRouteCount')];
-            const entryCountEls = [document.getElementById('metaEntryCount'), document.getElementById('statusEntryCount')];
-            routeCountEls.forEach(el => { if (el) el.innerText = routeConfig.length; });
-            entryCountEls.forEach(el => { if (el) el.innerText = db.length; });
-        }
+       function updateStatusMeta() {
+
+    // ==========================================
+    // TOTAL PANJANG SELURUH RUTE
+    // ==========================================
+    const totalPkmMeter = routeConfig.reduce(
+        (sum, r) => sum + (Number(r.km) || 0),
+        0
+    );
+
+    const metaTotalPkm = document.getElementById('metaTotalPkm');
+
+    if (metaTotalPkm) {
+        metaTotalPkm.innerText =
+            totalPkmMeter.toLocaleString('id-ID') + ' M';
+    }
+
+
+    // ==========================================
+    // JUMLAH KUNJUNGAN SESUAI FILTER
+    // ==========================================
+    let filteredVisits = [...db];
+
+    if (filterRoute) {
+        filteredVisits = filteredVisits.filter(
+            e => e.route === filterRoute
+        );
+    }
+
+    if (filterDateFrom) {
+        filteredVisits = filteredVisits.filter(
+            e => e.tgl >= filterDateFrom
+        );
+    }
+
+    if (filterDateTo) {
+        filteredVisits = filteredVisits.filter(
+            e => e.tgl <= filterDateTo
+        );
+    }
+
+    const filterVisitCount =
+        document.getElementById('filterVisitCount');
+
+    if (filterVisitCount) {
+        filterVisitCount.innerText =
+            'KUNJUNGAN RUTE: ' +
+            filteredVisits.length.toLocaleString('id-ID') +
+            'X';
+    }
+
+
+    // ==========================================
+    // STATUS BAR BAWAH
+    // ==========================================
+    const statusRouteCount =
+        document.getElementById('statusRouteCount');
+
+    const statusEntryCount =
+        document.getElementById('statusEntryCount');
+
+    if (statusRouteCount) {
+        statusRouteCount.innerText = routeConfig.length;
+    }
+
+    if (statusEntryCount) {
+        statusEntryCount.innerText = db.length;
+    }
+}
 
         /* ===== Pengaturan Rute (Tambah / Hapus Segment) ===== */
         function openSettings() {
@@ -724,64 +1378,118 @@ let filterRoute = '';
             refresh();
         }
 
+        // Bagi entri progres ke beberapa "lane" (baris) supaya rentang yang tumpang tindih tidak saling menimpa.
+        // Dipakai baik untuk menggambar diagram maupun untuk menghitung skor ranking rute (biar hasilnya konsisten).
+        function buildRouteLanes(rData) {
+            let rawLanes = [];
+            rData.forEach(entry => {
+                let segments = [{ start: entry.awal, end: entry.akhir }];
+                for (let l = 0; l < 10; l++) {
+                    if (!rawLanes[l]) rawLanes[l] = [];
+                    let nextQueue = [];
+                    segments.forEach(seg => {
+                        let overlaps = rawLanes[l].filter(ex => seg.start < ex.end && seg.end > ex.start);
+                        if (overlaps.length === 0) {
+                            rawLanes[l].push(seg);
+                        } else {
+                            let cur = seg.start;
+                            overlaps.sort((a,b) => a.start - b.start);
+                            overlaps.forEach(ov => {
+                                if (cur < ov.start) rawLanes[l].push({ start: cur, end: ov.start });
+                                let colStart = Math.max(cur, ov.start);
+                                let colEnd = Math.min(seg.end, ov.end);
+                                if (colStart < colEnd) nextQueue.push({ start: colStart, end: colEnd });
+                                cur = Math.max(cur, ov.end);
+                            });
+                            if (cur < seg.end) rawLanes[l].push({ start: cur, end: seg.end });
+                        }
+                    });
+                    segments = nextQueue;
+                    if (segments.length === 0) break;
+                }
+            });
+            return rawLanes;
+        }
+
+        // Skor ranking "juara umum" ala olimpiade:
+        // 1) Prioritas utama = jumlah lane yang FULL/HIJAU (jalur yang sudah tersisir penuh ujung ke ujung) - kayak medali emas.
+        // 2) Kalau jumlah lane hijau sama, penentu berikutnya adalah total akumulasi meter (lebih banyak menang).
+function getRouteRankScore(r) {
+    const rData = db.filter(e =>
+        e.route === r.name &&
+        (!filterDateFrom || e.tgl >= filterDateFrom) &&
+        (!filterDateTo || e.tgl <= filterDateTo)
+    ).sort((a,b) => a.awal - b.awal);
+    if (rData.length === 0 || r.km <= 0) return { greenCount: 0, bestFillPercent: 0 };
+
+    const rawLanes = buildRouteLanes(rData);
+    let greenCount = 0;
+    let bestFillPercent = 0; // persentase lane kuning (belum penuh) yang paling mendekati 100%
+
+    rawLanes.forEach(laneData => {
+        if (!laneData || laneData.length === 0) return;
+        laneData.sort((a,b) => a.start - b.start);
+        let merged = [];
+        let cur = { ...laneData[0] };
+        for (let i = 1; i < laneData.length; i++) {
+            if (laneData[i].start <= cur.end) {
+                cur.end = Math.max(cur.end, laneData[i].end);
+            } else {
+                merged.push(cur);
+                cur = { ...laneData[i] };
+            }
+        }
+        merged.push(cur);
+
+        const laneSum = merged.reduce((acc, curr) => acc + (curr.end - curr.start), 0);
+        const fillPercent = (laneSum / r.km) * 100;
+
+        if (laneSum >= r.km) {
+            greenCount++; // ini "emas" - lane hijau penuh
+        } else if (fillPercent > bestFillPercent) {
+            bestFillPercent = fillPercent; // simpan persentase kuning terbaik
+        }
+    });
+
+    return { greenCount, bestFillPercent };
+}
+
         function renderDiagrams() {
             const container = document.getElementById('gridContainer');
             container.innerHTML = '';
 
-            routeConfig.forEach((r) => {
+            // Urutkan rute: yang progresnya paling penuh (paling hijau) tampil paling atas
+            const sortedRoutes = [...routeConfig].sort((a, b) => {
+    const scoreA = getRouteRankScore(a);
+    const scoreB = getRouteRankScore(b);
+    if (scoreB.greenCount !== scoreA.greenCount) return scoreB.greenCount - scoreA.greenCount;
+    return scoreB.bestFillPercent - scoreA.bestFillPercent;
+});
+
+            sortedRoutes.forEach((r) => {
                 if (filterRoute && r.name !== filterRoute) return;
                 const rData = db.filter(e =>
                     e.route === r.name &&
                     (!filterDateFrom || e.tgl >= filterDateFrom) &&
                     (!filterDateTo || e.tgl <= filterDateTo)
                 ).sort((a,b) => a.awal - b.awal);
-                let rawLanes = [];
-
-                // Logika Jalur
-                rData.forEach(entry => {
-                    let segments = [{ start: entry.awal, end: entry.akhir }];
-                    for (let l = 0; l < 10; l++) {
-                        if (!rawLanes[l]) rawLanes[l] = [];
-                        let nextQueue = [];
-                        segments.forEach(seg => {
-                            let overlaps = rawLanes[l].filter(ex => seg.start < ex.end && seg.end > ex.start);
-                            if (overlaps.length === 0) {
-                                rawLanes[l].push(seg);
-                            } else {
-                                let cur = seg.start;
-                                overlaps.sort((a,b) => a.start - b.start);
-                                overlaps.forEach(ov => {
-                                    if (cur < ov.start) rawLanes[l].push({ start: cur, end: ov.start });
-                                    let colStart = Math.max(cur, ov.start);
-                                    let colEnd = Math.min(seg.end, ov.end);
-                                    if (colStart < colEnd) nextQueue.push({ start: colStart, end: colEnd });
-                                    cur = Math.max(cur, ov.end);
-                                });
-                                if (cur < seg.end) rawLanes[l].push({ start: cur, end: seg.end });
-                            }
-                        });
-                        segments = nextQueue;
-                        if (segments.length === 0) break;
-                    }
-                });
-
-                // Akumulasi total meter yang sudah disisir (dijumlah dari semua entri, termasuk yang tumpang tindih)
-                // dan jumlah berapa kali penyisiran dilakukan di rute ini
-                const akumulasiMeter = rData.reduce((sum, e) => sum + (e.akhir - e.awal), 0);
-                const jumlahPenyisiran = rData.length;
+                const rawLanes = buildRouteLanes(rData);
 
                 const row = document.createElement('div');
-                row.className = 'route-row';
+row.className = 'route-row';
 
-                const labelSide = document.createElement('div');
-                labelSide.className = 'route-label-side';
-                labelSide.innerHTML = `
-                    <div class="route-name text-[16px] font-black uppercase leading-tight tracking-tight">${r.name}</div>
-                    <div class="route-stats">
-                        <span>AKUMULASI: ${akumulasiMeter.toLocaleString('id-ID')} M</span>
-                        <span>KUNJUNGAN RUTE: ${jumlahPenyisiran}X</span>
-                    </div>
-                `;
+const labelSide = document.createElement('div');
+labelSide.className = 'route-label-side';
+
+labelSide.innerHTML = `
+    <div class="route-name text-[16px] font-black uppercase leading-tight tracking-tight">
+        ${r.name}
+    </div>
+
+    <div class="route-length">
+        ${(r.km / 1000).toLocaleString('id-ID')} KM
+    </div>
+`;
 
                 const chartArea = document.createElement('div');
                 chartArea.className = 'chart-area-horizontal';
@@ -865,7 +1573,29 @@ let filterRoute = '';
             resetForm();
             refresh();
         };
+function toggleDatabase() {
 
+    const table = document.getElementById('databaseTable');
+    const button = document.getElementById('toggleDataBtn');
+
+    if (!table || !button) return;
+
+    if (table.style.display === 'none') {
+
+        // TAMPILKAN TABEL
+        table.style.display = '';
+
+        button.innerHTML = '▲ Sembunyikan Data';
+
+    } else {
+
+        // SEMBUNYIKAN TABEL
+        table.style.display = 'none';
+
+        button.innerHTML = '▼ Tampilkan Data';
+
+    }
+}
         function renderTable() {
             const tbody = document.getElementById('dbTable');
             tbody.innerHTML = '';
@@ -1006,18 +1736,15 @@ let filterRoute = '';
         function setupFilters() {
             document.getElementById('filterRoute').onchange = (e) => {
                 filterRoute = e.target.value;
-                renderDiagrams();
-                renderTable();
+                refresh();
             };
             document.getElementById('filterDateFrom').onchange = (e) => {
                 filterDateFrom = e.target.value;
-                renderDiagrams();
-                renderTable();
+                refresh();
             };
             document.getElementById('filterDateTo').onchange = (e) => {
                 filterDateTo = e.target.value;
-                renderDiagrams();
-                renderTable();
+                refresh();
             };
         }
 
