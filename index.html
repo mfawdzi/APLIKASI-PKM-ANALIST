@@ -1824,6 +1824,32 @@ function toggleDatabase() {
 
     }
 }
+
+        function editItem(id) {
+
+    const item = db.find(e => e.id === id);
+
+    if (!item) {
+        alert("Data tidak ditemukan.");
+        return;
+    }
+
+    // Masukkan data lama ke form
+    document.getElementById('editId').value = item.id;
+    document.getElementById('tanggal').value = item.tgl;
+    document.getElementById('ruteSelect').value = item.route;
+    document.getElementById('pkmAwal').value = item.awal.toLocaleString('id-ID');
+    document.getElementById('pkmAkhir').value = item.akhir.toLocaleString('id-ID');
+
+    // Ubah tombol Simpan menjadi Ubah Data
+    document.getElementById('submitBtn').innerText = "Ubah Data";
+
+    // Scroll ke bagian form
+    document.getElementById('pkmForm').scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+    });
+}
         function renderTable() {
             const tbody = document.getElementById('dbTable');
             tbody.innerHTML = '';
