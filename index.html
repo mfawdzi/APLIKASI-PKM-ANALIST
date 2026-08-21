@@ -83,6 +83,12 @@
             box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset, 0 4px 10px rgba(255,138,61,0.25);
             flex-shrink: 0;
         }
+        .app-glyph img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 7px;
+        }
         .app-name { font-family: var(--mono); font-weight: 600; font-size: 13px; letter-spacing: 0.06em; color: var(--text); }
         .app-name .dim { color: var(--text-faint); font-weight: 500; }
   .route-analysis-ticker {
@@ -553,7 +559,37 @@
             font-size: 10.5px; font-weight: 700; color: #14171f; top: 0;
         }
         .grid-line { position: absolute; top: 22px; bottom: 0; width: 1px; background-color: #eef0ee; z-index: 1; }
+        .chart-and-percent-wrap {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    min-width: 0;
+}
 
+.route-percent-col {
+    flex: 0 0 58px;
+    display: flex;
+    flex-direction: column;
+    padding: 5px 4px 5px 0;
+    border-left: 1px solid #eef0ee;
+}
+
+.percent-header-spacer { height: 22px; margin-bottom: 5px; }
+
+.percent-badge {
+    height: 22px;
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: #10120f;
+    background: #ffffff;
+    border: 1px solid #14171f;
+    border-radius: 2px;
+}
         /* ===== Data Table ===== */
         .data-panel {
             background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px;
@@ -744,16 +780,7 @@
 <div class="titlebar-left">
 
     <div class="app-glyph">
-        <svg class="w-4 h-4"
-             fill="none"
-             stroke="#1a0d02"
-             viewBox="0 0 24 24">
-            <path stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2.5"
-                  d="M13 10V3L4 14h7v7l9-11h-7z">
-            </path>
-        </svg>
+        <img src="logo-pkm.png" alt="Logo PKM">
     </div>
 
     <div class="app-name">
@@ -1632,9 +1659,15 @@ labelSide.innerHTML = `
                 const chartArea = document.createElement('div');
                 chartArea.className = 'chart-area-horizontal';
 
+                const percentCol = document.createElement('div');
+                percentCol.className = 'route-percent-col';
+                const percentHeaderSpacer = document.createElement('div');
+                percentHeaderSpacer.className = 'percent-header-spacer';
+                percentCol.appendChild(percentHeaderSpacer);
+
                 const xAxis = document.createElement('div');
                 xAxis.className = 'x-axis-top';
-                r.ticks.forEach((tickVal) => {
+                genTicks(r.km).forEach((tickVal) => {
                     const pos = (tickVal / r.km) * 100;
                     const tickLabel = document.createElement('div');
                     tickLabel.className = 'axis-tick';
@@ -1648,7 +1681,6 @@ labelSide.innerHTML = `
                     chartArea.appendChild(gridLine);
                 });
                 chartArea.appendChild(xAxis);
-
                 rawLanes.forEach((laneData) => {
                     if (laneData.length === 0) return;
                     laneData.sort((a,b) => a.start - b.start);
@@ -1666,6 +1698,7 @@ labelSide.innerHTML = `
 
                     const laneSum = merged.reduce((acc, curr) => acc + (curr.end - curr.start), 0);
                     const laneColor = laneSum >= r.km ? '#3ddc84' : '#f0b429';
+                    const fillPct = Math.min(100, (laneSum / r.km) * 100);
 
                     const laneDiv = document.createElement('div');
                     laneDiv.className = 'lane-horizontal';
@@ -1682,10 +1715,20 @@ labelSide.innerHTML = `
                         laneDiv.appendChild(bar);
                     });
                     chartArea.appendChild(laneDiv);
+
+                    const percentBadge = document.createElement('div');
+                    percentBadge.className = 'percent-badge';
+                    percentBadge.innerText = `${fillPct.toFixed(1)}%`;
+                    percentCol.appendChild(percentBadge);
                 });
 
+                const chartWrap = document.createElement('div');
+                chartWrap.className = 'chart-and-percent-wrap';
+                chartWrap.appendChild(chartArea);
+                chartWrap.appendChild(percentCol);
+
                 row.appendChild(labelSide);
-                row.appendChild(chartArea);
+                row.appendChild(chartWrap);
                 container.appendChild(row);
             });
         }
