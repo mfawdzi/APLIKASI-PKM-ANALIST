@@ -18,6 +18,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+
     <style>
         :root {
             --bg: #0f1f2d;
@@ -330,7 +331,39 @@
     font-weight: 800;
     letter-spacing: 0.08em;
 }
+.pkm-analist {
+    display: inline-flex;
+    gap: 2px;
+    perspective: 800px;
+}
 
+.pkm-analist span {
+    display: inline-block;
+    transform-style: preserve-3d;
+    animation: letterFlip 4.2s infinite;
+}
+
+.pkm-analist span:nth-child(1) { animation-delay: 0s; }
+.pkm-analist span:nth-child(2) { animation-delay: .35s; }
+.pkm-analist span:nth-child(3) { animation-delay: .70s; }
+.pkm-analist span:nth-child(4) { animation-delay: 1.05s; }
+.pkm-analist span:nth-child(5) { animation-delay: 1.40s; }
+.pkm-analist span:nth-child(6) { animation-delay: 1.75s; }
+.pkm-analist span:nth-child(7) { animation-delay: 2.10s; }
+.pkm-analist span:nth-child(8) { animation-delay: 2.45s; }
+.pkm-analist span:nth-child(9) { animation-delay: 2.80s; }
+.pkm-analist span:nth-child(10) { animation-delay: 3.15s; }
+.pkm-analist span:nth-child(11) { animation-delay: 3.50s; }
+
+@keyframes letterFlip {
+    0%, 70%, 100% {
+        transform: rotateY(0deg);
+    }
+
+    35% {
+        transform: rotateY(180deg);
+    }
+}
 /* Tombol aksi di baris judul */
 .titlebar-actions {
     display: flex;
@@ -793,9 +826,19 @@
         <img src="logo-pkm.png" alt="Logo PKM">
     </div>
 
-    <div class="app-name">
-        PKM ANALYST
-    </div>
+    <div class="app-name pkm-analist">
+    <span>P</span>
+    <span>K</span>
+    <span>M</span>
+    <span>&nbsp;</span>
+    <span>A</span>
+    <span>N</span>
+    <span>A</span>
+    <span>L</span>
+    <span>Y</span>
+    <span>S</span>
+    <span>T</span>
+</div>
 
 </div>
 
