@@ -503,6 +503,16 @@
         .route-row {
     display: flex; flex-direction: column; border: 1px solid #14171f; background: #fff;
     min-height: 100px; position: relative; break-inside: avoid; border-radius: 2px; overflow: visible;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        .route-row.route-row-highlight {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft), 0 0 20px rgba(255,138,61,0.4);
+    animation: route-row-pulse 1s ease-in-out 2;
+        }
+        @keyframes route-row-pulse {
+            0%, 100% { box-shadow: 0 0 0 3px var(--accent-soft), 0 0 20px rgba(255,138,61,0.4); }
+            50% { box-shadow: 0 0 0 5px var(--accent-soft), 0 0 30px rgba(255,138,61,0.6); }
         }
 
         .route-label-side {
@@ -998,7 +1008,8 @@
                             PKM Awal
                         </label>
 
-                        <input type="number"
+                        <input type="text"
+                               inputmode="numeric"
                                id="pkmAwal"
                                value="0"
                                required
@@ -1013,7 +1024,8 @@
                             PKM Akhir
                         </label>
 
-                        <input type="number"
+                        <input type="text"
+                               inputmode="numeric"
                                id="pkmAkhir"
                                required
                                class="field-input">
@@ -1276,8 +1288,28 @@
         function genRouteId() {
             return 'route_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
         }
-        function genRouteId() {
-            return 'route_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+        // Ubah angka mentah jadi format ribuan pakai titik (contoh: 1000 -> "1.000")
+        function formatThousand(numStr) {
+            const digitsOnly = numStr.replace(/\D/g, '');
+            if (!digitsOnly) return '';
+            return parseInt(digitsOnly, 10).toLocaleString('id-ID');
+        }
+
+        // Hilangkan titik ribuan supaya jadi angka murni lagi sebelum disimpan (contoh: "1.000" -> 1000)
+        function parseThousand(str) {
+            return parseInt(str.replace(/\D/g, '') || '0', 10);
+        }
+
+        // Pasang auto-format titik ribuan langsung saat user mengetik di kolom PKM Awal/Akhir
+        function setupThousandInput(id) {
+            const el = document.getElementById(id);
+            el.addEventListener('input', () => {
+                const cursorFromEnd = el.value.length - el.selectionStart;
+                el.value = formatThousand(el.value);
+                const newPos = el.value.length - cursorFromEnd;
+                el.setSelectionRange(newPos, newPos);
+            });
         }
 
         function loadRoutes() {
@@ -1308,6 +1340,8 @@ let filterRoute = '';
     refresh();
     setupImport();
     setupFilters();
+    setupThousandInput('pkmAwal');
+    setupThousandInput('pkmAkhir');
 };
 
         function renderRouteOptions() {
@@ -1642,6 +1676,7 @@ function getRouteRankScore(r) {
 
                 const row = document.createElement('div');
 row.className = 'route-row';
+row.dataset.routeName = r.name;
 
 const labelSide = document.createElement('div');
 labelSide.className = 'route-label-side';
@@ -1740,8 +1775,8 @@ labelSide.innerHTML = `
                 id: id || Date.now().toString(),
                 tgl: document.getElementById('tanggal').value,
                 route: document.getElementById('ruteSelect').value,
-                awal: parseInt(document.getElementById('pkmAwal').value),
-                akhir: parseInt(document.getElementById('pkmAkhir').value)
+                awal: parseThousand(document.getElementById('pkmAwal').value),
+                akhir: parseThousand(document.getElementById('pkmAkhir').value)
             };
             if(entry.akhir <= entry.awal) return alert("PKM Akhir harus lebih besar!");
             if(id) {
@@ -1753,7 +1788,19 @@ labelSide.innerHTML = `
             localStorage.setItem('pkm_v27_data', JSON.stringify(db));
             resetForm();
             refresh();
+            scrollToRoute(entry.route);
         };
+
+        // Gulir layar otomatis ke kartu rute yang baru saja diisi, supaya user langsung lihat perubahannya
+        function scrollToRoute(routeName) {
+            setTimeout(() => {
+                const targetRow = document.querySelector(`.route-row[data-route-name="${CSS.escape(routeName)}"]`);
+                if (!targetRow) return;
+                targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                targetRow.classList.add('route-row-highlight');
+                setTimeout(() => targetRow.classList.remove('route-row-highlight'), 2000);
+            }, 100);
+        }
 function toggleDatabase() {
 
     const table = document.getElementById('databaseTable');
@@ -1906,15 +1953,12 @@ saveAs(new Blob([buffer]), namaFile);
             };
                     }
 
-        function editItem(id) {
-            const e = db.find(x => x.id === id);
-            document.getElementById('editId').value = e.id;
-            document.getElementById('tanggal').value = e.tgl;
-            document.getElementById('ruteSelect').value = e.route;
-            document.getElementById('pkmAwal').value = e.awal;
-            document.getElementById('pkmAkhir').value = e.akhir;
-            document.getElementById('submitBtn').innerText = "Update Data";
-            window.scrollTo({top: 0, behavior: 'smooth'});
+        function resetForm() {
+            document.getElementById('pkmForm').reset();
+            document.getElementById('editId').value = "";
+            document.getElementById('pkmAwal').value = "0";
+            document.getElementById('submitBtn').innerText = "Simpan";
+            document.getElementById('tanggal').valueAsDate = new Date();
         }
 
         function deleteItem(id) {
