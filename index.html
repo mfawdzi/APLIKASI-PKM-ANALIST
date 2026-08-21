@@ -1851,49 +1851,225 @@ function toggleDatabase() {
             });
         }
 
-        async function exportIntegratedExcel() {
-            document.getElementById('loader').style.display = 'flex';
-            try {
-                // Pastikan font custom (IBM Plex, termasuk weight tebal 900 untuk nama rute) sudah
-                // benar-benar selesai dimuat sebelum di-screenshot, supaya teks tidak berantakan/terpotong.
-                if (document.fonts) {
-                    try {
-                        await document.fonts.load('900 16px "IBM Plex Sans"');
-                        await document.fonts.load('700 10px "IBM Plex Mono"');
-                        await document.fonts.ready;
-                    } catch (e) {}
-                }
-                const canvas = await html2canvas(document.getElementById('printArea'), {
-                    scale: 2, useCORS: true, allowTaint: true
-                });
-                const base64 = canvas.toDataURL('image/png');
-                const wb = new ExcelJS.Workbook();
-                const wsData = wb.addWorksheet('DATABASE');
-                wsData.columns = [
-                    { header: 'TANGGAL', key: 'tgl', width: 15 }, { header: 'RUTE', key: 'route', width: 35 },
-                    { header: 'PKM AWAL', key: 'awal', width: 15 }, { header: 'PKM AKHIR', key: 'akhir', width: 15 },
-                    { header: 'VOLUME', key: 'vol', width: 12 }
-                ];
-                db.forEach(e => wsData.addRow({ ...e, vol: e.akhir-e.awal }));
-                const wsChart = wb.addWorksheet('DIAGRAM');
-                const img = wb.addImage({ base64: base64, extension: 'png' });
-                wsChart.addImage(img, { tl: { col: 1, row: 1 }, ext: { width: canvas.width/2.5, height: canvas.height/2.5 } });
-                const buffer = await wb.xlsx.writeBuffer();
-               // Ambil tanggal terbaru dari database
-const tanggalTerbaru = db.length
-    ? db.reduce((terbaru, item) =>
-        item.tgl > terbaru ? item.tgl : terbaru
-      , db[0].tgl)
-    : new Date().toISOString().split('T')[0];
+async function exportIntegratedExcel() {
+    document.getElementById('loader').style.display = 'flex';
 
-// Format YYYY-MM-DD menjadi DD-MM-YYYY
-const [tahun, bulan, tanggal] = tanggalTerbaru.split('-');
-const namaFile = `PKM ${tanggal}-${bulan}-${tahun}.xlsx`;
+    try {
 
-saveAs(new Blob([buffer]), namaFile);
-            } catch (err) { alert("Ekspor Gagal."); }
-            document.getElementById('loader').style.display = 'none';
+        // ==============================
+        // AMBIL DATA SESUAI FILTER
+        // ==============================
+        let filteredData = [...db];
+
+        if (filterRoute) {
+            filteredData = filteredData.filter(
+                e => e.route === filterRoute
+            );
         }
+
+        if (filterDateFrom) {
+            filteredData = filteredData.filter(
+                e => e.tgl >= filterDateFrom
+            );
+        }
+
+        if (filterDateTo) {
+            filteredData = filteredData.filter(
+                e => e.tgl <= filterDateTo
+            );
+        }
+
+        // Kalau hasil filter kosong
+        if (filteredData.length === 0) {
+            alert("Tidak ada data untuk diekspor sesuai filter.");
+            document.getElementById('loader').style.display = 'none';
+            return;
+        }
+
+
+        // ==============================
+        // PASTIKAN FONT SELESAI DIMUAT
+        // ==============================
+        if (document.fonts) {
+            try {
+                await document.fonts.load('900 16px "IBM Plex Sans"');
+                await document.fonts.load('700 10px "IBM Plex Mono"');
+                await document.fonts.ready;
+            } catch (e) {}
+        }
+
+
+        // ==============================
+        // AMBIL GAMBAR DIAGRAM
+        // ==============================
+        const canvas = await html2canvas(
+            document.getElementById('printArea'),
+            {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true
+            }
+        );
+
+        const base64 = canvas.toDataURL('image/png');
+
+
+        // ==============================
+        // BUAT FILE EXCEL
+        // ==============================
+        const wb = new ExcelJS.Workbook();
+
+        const wsData = wb.addWorksheet('DATABASE');
+
+        wsData.columns = [
+            {
+                header: 'TANGGAL',
+                key: 'tgl',
+                width: 15
+            },
+            {
+                header: 'RUTE',
+                key: 'route',
+                width: 35
+            },
+            {
+                header: 'PKM AWAL',
+                key: 'awal',
+                width: 15
+            },
+            {
+                header: 'PKM AKHIR',
+                key: 'akhir',
+                width: 15
+            },
+            {
+                header: 'VOLUME',
+                key: 'vol',
+                width: 12
+            }
+        ];
+
+
+        // HANYA DATA HASIL FILTER
+        filteredData.forEach(e => {
+            wsData.addRow({
+                ...e,
+                vol: e.akhir - e.awal
+            });
+        });
+
+
+        // ==============================
+        // MASUKKAN DIAGRAM
+        // ==============================
+        const wsChart = wb.addWorksheet('DIAGRAM');
+
+        const img = wb.addImage({
+            base64: base64,
+            extension: 'png'
+        });
+
+        wsChart.addImage(img, {
+            tl: {
+                col: 1,
+                row: 1
+            },
+            ext: {
+                width: canvas.width / 2.5,
+                height: canvas.height / 2.5
+            }
+        });
+
+
+        // ==============================
+        // BUAT NAMA FILE
+        // ==============================
+
+        let namaFile = 'PKM Database';
+
+
+        // FORMAT TANGGAL
+        function formatTanggalFile(tanggal) {
+
+            if (!tanggal) return '';
+
+            const [tahun, bulan, hari] = tanggal.split('-');
+
+            return `${hari}-${bulan}-${tahun}`;
+        }
+
+
+        // ==============================
+        // FILTER RUTE + TANGGAL
+        // ==============================
+        if (filterRoute && filterDateFrom && filterDateTo) {
+
+            namaFile =
+                `PKM ${formatTanggalFile(filterDateFrom)} - ${formatTanggalFile(filterDateTo)} ${filterRoute}`;
+
+        }
+
+        // ==============================
+        // FILTER RUTE SAJA
+        // ==============================
+        else if (filterRoute) {
+
+            namaFile =
+                `PKM ${filterRoute}`;
+
+        }
+
+        // ==============================
+        // FILTER TANGGAL SAJA
+        // ==============================
+        else if (filterDateFrom && filterDateTo) {
+
+            namaFile =
+                `PKM ${formatTanggalFile(filterDateFrom)} - ${formatTanggalFile(filterDateTo)}`;
+
+        }
+
+        // ==============================
+        // SATU TANGGAL SAJA
+        // ==============================
+        else if (filterDateFrom) {
+
+            namaFile =
+                `PKM ${formatTanggalFile(filterDateFrom)}`;
+
+        }
+
+        else if (filterDateTo) {
+
+            namaFile =
+                `PKM sampai ${formatTanggalFile(filterDateTo)}`;
+
+        }
+
+
+        // Hilangkan karakter yang tidak boleh untuk nama file
+        namaFile = namaFile.replace(/[\\/:*?"<>|]/g, '-');
+
+
+        // ==============================
+        // SIMPAN FILE
+        // ==============================
+        const buffer = await wb.xlsx.writeBuffer();
+
+        saveAs(
+            new Blob([buffer]),
+            `${namaFile}.xlsx`
+        );
+
+    } catch (err) {
+
+        console.error(err);
+        alert("Ekspor Gagal.");
+
+    }
+
+    document.getElementById('loader').style.display = 'none';
+}
 
         function setupImport() {
             document.getElementById('importInput').onchange = (e) => {
