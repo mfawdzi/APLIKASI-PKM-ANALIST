@@ -601,38 +601,7 @@
             position: absolute; transform: translateX(-50%); font-family: var(--mono);
             font-size: 10.5px; font-weight: 700; color: #14171f; top: 0;
         }
-        .grid-line { position: absolute; top: 22px; bottom: 0; width: 1px; background-color: #eef0ee; z-index: 1; }
-        .chart-and-percent-wrap {
-    display: flex;
-    flex-direction: row;
-    flex: 1;
-    min-width: 0;
-}
-
-.route-percent-col {
-    flex: 0 0 58px;
-    display: flex;
-    flex-direction: column;
-    padding: 5px 4px 5px 0;
-    border-left: 1px solid #eef0ee;
-}
-
-.percent-header-spacer { height: 22px; margin-bottom: 5px; }
-
-.percent-badge {
-    height: 22px;
-    margin-bottom: 3px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--mono);
-    font-size: 10px;
-    font-weight: 700;
-    color: #10120f;
-    background: #ffffff;
-    border: 1px solid #14171f;
-    border-radius: 2px;
-}
+                .grid-line { position: absolute; top: 34px; bottom: 0; width: 1px; background-color: #eef0ee; z-index: 1; }
         /* ===== Data Table ===== */
         .data-panel {
             background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px;
@@ -1737,12 +1706,6 @@ labelSide.innerHTML = `
                 const chartArea = document.createElement('div');
                 chartArea.className = 'chart-area-horizontal';
 
-                const percentCol = document.createElement('div');
-                percentCol.className = 'route-percent-col';
-                const percentHeaderSpacer = document.createElement('div');
-                percentHeaderSpacer.className = 'percent-header-spacer';
-                percentCol.appendChild(percentHeaderSpacer);
-
                 const xAxis = document.createElement('div');
                 xAxis.className = 'x-axis-top';
                 genTicks(r.km).forEach((tickVal) => {
@@ -1776,7 +1739,6 @@ labelSide.innerHTML = `
 
                     const laneSum = merged.reduce((acc, curr) => acc + (curr.end - curr.start), 0);
                     const laneColor = laneSum >= r.km ? '#3ddc84' : '#f0b429';
-                    const fillPct = Math.min(100, (laneSum / r.km) * 100);
 
                     const laneDiv = document.createElement('div');
                     laneDiv.className = 'lane-horizontal';
@@ -1793,20 +1755,10 @@ labelSide.innerHTML = `
                         laneDiv.appendChild(bar);
                     });
                     chartArea.appendChild(laneDiv);
-
-                    const percentBadge = document.createElement('div');
-                    percentBadge.className = 'percent-badge';
-                    percentBadge.innerText = `${fillPct.toFixed(1)}%`;
-                    percentCol.appendChild(percentBadge);
                 });
 
-                const chartWrap = document.createElement('div');
-                chartWrap.className = 'chart-and-percent-wrap';
-                chartWrap.appendChild(chartArea);
-                chartWrap.appendChild(percentCol);
-
                 row.appendChild(labelSide);
-                row.appendChild(chartWrap);
+                row.appendChild(chartArea);
                 container.appendChild(row);
             });
         }
