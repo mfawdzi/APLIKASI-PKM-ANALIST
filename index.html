@@ -536,7 +536,42 @@
         .route-row {
     display: flex; flex-direction: column; border: 1px solid #14171f; background: #fff;
     min-height: 100px; position: relative; break-inside: avoid; border-radius: 2px; overflow: visible;
-    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+    cursor: pointer;
+        }
+        .route-row:hover {
+    transform: scale(1.015);
+    z-index: 25;
+    border-color: var(--accent2);
+    box-shadow: 0 10px 26px rgba(0,0,0,0.35), 0 0 0 2px var(--accent2-soft);
+        }
+        .route-hover-badge {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    display: flex;
+    gap: 8px;
+    background: rgba(20,23,31,0.94);
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+    z-index: 30;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+        }
+        .route-hover-badge .badge-pct { color: var(--accent2); }
+        .route-hover-badge .badge-visit { color: var(--accent); }
+        .route-row:hover .route-hover-badge {
+    opacity: 1;
+    transform: translateY(0);
         }
         .route-row.route-row-highlight {
     border-color: var(--accent);
@@ -546,6 +581,36 @@
         @keyframes route-row-pulse {
             0%, 100% { box-shadow: 0 0 0 3px var(--accent-soft), 0 0 20px rgba(255,138,61,0.4); }
             50% { box-shadow: 0 0 0 5px var(--accent-soft), 0 0 30px rgba(255,138,61,0.6); }
+        }
+
+        .route-added-toast {
+    position: absolute;
+    top: 46px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px) scale(0.92);
+    z-index: 40;
+    background: linear-gradient(135deg, #ff4d4d, #ff8a3d);
+    color: #ffffff;
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    padding: 9px 18px;
+    border-radius: 8px;
+    white-space: nowrap;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.25), 0 10px 28px rgba(255,77,77,0.5);
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    animation: toast-attention-pulse 0.8s ease-in-out 2;
+        }
+        .route-added-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+        }
+        @keyframes toast-attention-pulse {
+            0%, 100% { box-shadow: 0 0 0 2px rgba(255,255,255,0.25), 0 10px 28px rgba(255,77,77,0.5); }
+            50% { box-shadow: 0 0 0 4px rgba(255,255,255,0.4), 0 10px 36px rgba(255,77,77,0.75); }
         }
 
         .route-label-side {
@@ -1622,6 +1687,26 @@ function showNextRouteAnalysis() {
             return rawLanes;
         }
 
+           // Hitung persentase panjang rute yang sudah tersisir secara keseluruhan
+        // (union semua entri — kalau ada yang tumpang tindih, tidak dihitung dobel)
+        function computeRouteCoveragePercent(rData, kmTotal) {
+            if (!rData.length || kmTotal <= 0) return 0;
+            const segments = rData.map(e => ({ start: e.awal, end: e.akhir })).sort((a,b) => a.start - b.start);
+            let merged = [];
+            let cur = { ...segments[0] };
+            for (let i = 1; i < segments.length; i++) {
+                if (segments[i].start <= cur.end) {
+                    cur.end = Math.max(cur.end, segments[i].end);
+                } else {
+                    merged.push(cur);
+                    cur = { ...segments[i] };
+                }
+            }
+            merged.push(cur);
+            const covered = merged.reduce((sum, s) => sum + (s.end - s.start), 0);
+            return Math.min(100, Math.round((covered / kmTotal) * 100));
+        }
+
         // Skor ranking "juara umum" ala olimpiade:
         // 1) Prioritas utama = jumlah lane yang FULL/HIJAU (jalur yang sudah tersisir penuh ujung ke ujung) - kayak medali emas.
         // 2) Kalau jumlah lane hijau sama, penentu berikutnya adalah total akumulasi meter (lebih banyak menang).
@@ -1685,6 +1770,7 @@ function getRouteRankScore(r) {
                     (!filterDateTo || e.tgl <= filterDateTo)
                 ).sort((a,b) => a.awal - b.awal);
                 const rawLanes = buildRouteLanes(rData);
+                const coveragePercent = computeRouteCoveragePercent(rData, r.km);
 
                 const row = document.createElement('div');
 row.className = 'route-row';
@@ -1722,6 +1808,12 @@ labelSide.innerHTML = `
                     chartArea.appendChild(gridLine);
                 });
                 chartArea.appendChild(xAxis);
+
+                const hoverBadge = document.createElement('div');
+                hoverBadge.className = 'route-hover-badge';
+                hoverBadge.innerHTML = `<span class="badge-pct">CAPAIAN: ${coveragePercent}%</span><span class="badge-visit">KUNJUNGAN: ${rData.length}X</span>`;
+                chartArea.appendChild(hoverBadge);
+
                 rawLanes.forEach((laneData) => {
                     if (laneData.length === 0) return;
                     laneData.sort((a,b) => a.start - b.start);
@@ -1751,6 +1843,7 @@ labelSide.innerHTML = `
                         bar.style.width = `${Math.max(w, 0.4)}%`;
                         bar.style.left = `${l}%`;
                         bar.style.backgroundColor = laneColor;
+                        bar.title = `PKM ${segment.start.toLocaleString('id-ID')} - ${segment.end.toLocaleString('id-ID')}  •  ${w.toFixed(1)}% dari total rute`;
                         if(w > 2.5) bar.innerHTML = `<span class="bar-label">${formatKm(segment.end - segment.start)}</span>`;
                         laneDiv.appendChild(bar);
                     });
@@ -1783,18 +1876,41 @@ labelSide.innerHTML = `
             localStorage.setItem('pkm_v27_data', JSON.stringify(db));
             resetForm();
             refresh();
-            scrollToRoute(entry.route);
+            scrollToRoute(entry, !!id);
         };
 
-        // Gulir layar otomatis ke kartu rute yang baru saja diisi, supaya user langsung lihat perubahannya
-        function scrollToRoute(routeName) {
+        // Gulir layar otomatis ke kartu rute yang baru saja diisi, sekaligus menampilkan
+        // info rentang KM yang baru ditambahkan/diubah selama 3 detik
+        function scrollToRoute(entry, isEdit) {
             setTimeout(() => {
-                const targetRow = document.querySelector(`.route-row[data-route-name="${CSS.escape(routeName)}"]`);
+                const targetRow = document.querySelector(`.route-row[data-route-name="${CSS.escape(entry.route)}"]`);
                 if (!targetRow) return;
                 targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 targetRow.classList.add('route-row-highlight');
                 setTimeout(() => targetRow.classList.remove('route-row-highlight'), 2000);
+                showRouteAddedToast(targetRow, entry, isEdit);
             }, 100);
+        }
+
+        // Munculkan info "KM 0 - 5.000 CGS10 sudah ditambahkan" di atas kartu rute selama 3 detik
+        function showRouteAddedToast(targetRow, entry, isEdit) {
+            const oldToast = targetRow.querySelector('.route-added-toast');
+            if (oldToast) oldToast.remove();
+
+            const toast = document.createElement('div');
+            toast.className = 'route-added-toast';
+            const awalFmt = entry.awal.toLocaleString('id-ID');
+            const akhirFmt = entry.akhir.toLocaleString('id-ID');
+            const verb = isEdit ? 'diperbarui' : 'ditambahkan';
+            toast.innerText = `KM ${awalFmt} - ${akhirFmt} ${entry.route} sudah ${verb}`;
+            targetRow.appendChild(toast);
+
+            requestAnimationFrame(() => toast.classList.add('show'));
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
         }
 function toggleDatabase() {
 
