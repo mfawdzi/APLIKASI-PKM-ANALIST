@@ -654,7 +654,19 @@
     position: absolute; height: 85%; top: 7.5%; border-radius: 2px;
     display: flex; align-items: center; justify-content: flex-end;
     z-index: 10; border: 1px solid rgba(0,0,0,0.25);
-    overflow: hidden; padding-right: 2px;
+    overflow: visible; padding-right: 2px;
+    transform-origin: center;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    cursor: pointer;
+}
+        .lane-horizontal:hover {
+    z-index: 15;
+}
+        .lane-horizontal:hover .bar-segment-horizontal {
+    transform: scale(1.12);
+    z-index: 20;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    filter: brightness(1.08);
 }
 .bar-label {
     color: #10120f; font-family: var(--mono); font-size: 9px; font-weight: 700;
@@ -807,6 +819,36 @@
     opacity: 0.9;
     filter: invert(45%) sepia(90%) saturate(1800%) hue-rotate(175deg);
 }
+            .lane-tooltip {
+    position: fixed;
+    z-index: 500;
+    background: #14171f;
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    line-height: 1.5;
+    padding: 11px 15px;
+    border-radius: 8px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+    max-width: 360px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.12s ease, transform 0.12s ease;
+    display: none;
+        }
+        .lane-tooltip.show {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+        }
+        .lane-tooltip-total {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    color: var(--accent2);
+    font-weight: 700;
+        }
     </style>
 </head>
 <body class="p-4 pb-14">
@@ -1362,6 +1404,66 @@
             return formatted + 'KM';
         }
 
+        // Ubah "2026-08-28" jadi "28/08/26" untuk ditampilkan di riwayat tooltip
+        function formatTglShort(tgl) {
+            if (!tgl) return '';
+            const [y, m, d] = tgl.split('-');
+            return `${d}/${m}/${y.slice(2)}`;
+        }
+
+        let laneTooltipEl = null;
+        function getLaneTooltipEl() {
+            if (!laneTooltipEl) {
+                laneTooltipEl = document.createElement('div');
+                laneTooltipEl.className = 'lane-tooltip';
+                document.body.appendChild(laneTooltipEl);
+            }
+            return laneTooltipEl;
+        }
+
+        // Pasang tooltip gabungan pada satu baris (lane). Hover di batang manapun dalam baris
+        // itu langsung menampilkan info tiap batang secara terpisah + persentase akumulasi baris,
+        // dan efek zoom berlaku ke semua batang di baris yang sama (lihat CSS .lane-horizontal:hover)
+        function attachLaneTooltip(laneDiv, segments, route, accumPercent) {
+            const tooltip = getLaneTooltipEl();
+
+            const buildHtml = () => {
+                const blocksHtml = segments.map((seg, idx) => {
+                    const w = ((seg.end - seg.start) / route.km) * 100;
+                    const historyHtml = [...seg.parts]
+                        .sort((a, b) => new Date(b.tgl) - new Date(a.tgl))
+                        .map(h => `<div style="opacity:0.85;">${formatTglShort(h.tgl)}&nbsp;&nbsp;PKM ${h.start.toLocaleString('id-ID')} - ${h.end.toLocaleString('id-ID')}</div>`)
+                        .join('');
+                    return `
+                        <div style="color:var(--accent2); font-weight:700; margin-bottom:2px;">BATANG ${idx + 1}: PKM ${seg.start.toLocaleString('id-ID')} - ${seg.end.toLocaleString('id-ID')} &bull; ${w.toFixed(1)}%</div>
+                        ${historyHtml}
+                    `;
+                }).join('<div style="height:8px;"></div>');
+                return `${blocksHtml}<div class="lane-tooltip-total">AKUMULASI BARIS INI: ${accumPercent.toFixed(1)}%</div>`;
+            };
+
+            const positionTooltip = (evt) => {
+                const pad = 14;
+                let x = evt.clientX + pad;
+                let y = evt.clientY + pad;
+                const rect = tooltip.getBoundingClientRect();
+                if (x + rect.width > window.innerWidth) x = evt.clientX - rect.width - pad;
+                if (y + rect.height > window.innerHeight) y = evt.clientY - rect.height - pad;
+                tooltip.style.left = `${x}px`;
+                tooltip.style.top = `${y}px`;
+            };
+
+            laneDiv.addEventListener('mouseenter', (evt) => {
+                tooltip.innerHTML = buildHtml();
+                tooltip.classList.add('show');
+                positionTooltip(evt);
+            });
+            laneDiv.addEventListener('mousemove', positionTooltip);
+            laneDiv.addEventListener('mouseleave', () => {
+                tooltip.classList.remove('show');
+            });
+        }
+
         function genRouteId() {
             return 'route_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
         }
@@ -1659,7 +1761,7 @@ function showNextRouteAnalysis() {
         function buildRouteLanes(rData) {
             let rawLanes = [];
             rData.forEach(entry => {
-                let segments = [{ start: entry.awal, end: entry.akhir }];
+                let segments = [{ start: entry.awal, end: entry.akhir, tgl: entry.tgl }];
                 for (let l = 0; l < 10; l++) {
                     if (!rawLanes[l]) rawLanes[l] = [];
                     let nextQueue = [];
@@ -1671,13 +1773,13 @@ function showNextRouteAnalysis() {
                             let cur = seg.start;
                             overlaps.sort((a,b) => a.start - b.start);
                             overlaps.forEach(ov => {
-                                if (cur < ov.start) rawLanes[l].push({ start: cur, end: ov.start });
+                                if (cur < ov.start) rawLanes[l].push({ start: cur, end: ov.start, tgl: seg.tgl });
                                 let colStart = Math.max(cur, ov.start);
                                 let colEnd = Math.min(seg.end, ov.end);
-                                if (colStart < colEnd) nextQueue.push({ start: colStart, end: colEnd });
+                                if (colStart < colEnd) nextQueue.push({ start: colStart, end: colEnd, tgl: seg.tgl });
                                 cur = Math.max(cur, ov.end);
                             });
-                            if (cur < seg.end) rawLanes[l].push({ start: cur, end: seg.end });
+                            if (cur < seg.end) rawLanes[l].push({ start: cur, end: seg.end, tgl: seg.tgl });
                         }
                     });
                     segments = nextQueue;
@@ -1818,19 +1920,21 @@ labelSide.innerHTML = `
                     if (laneData.length === 0) return;
                     laneData.sort((a,b) => a.start - b.start);
                     let merged = [];
-                    let cur = { ...laneData[0] };
+                    let cur = { start: laneData[0].start, end: laneData[0].end, parts: [{ start: laneData[0].start, end: laneData[0].end, tgl: laneData[0].tgl }] };
                     for (let i = 1; i < laneData.length; i++) {
                         if (laneData[i].start <= cur.end) {
                             cur.end = Math.max(cur.end, laneData[i].end);
+                            cur.parts.push({ start: laneData[i].start, end: laneData[i].end, tgl: laneData[i].tgl });
                         } else {
                             merged.push(cur);
-                            cur = { ...laneData[i] };
+                            cur = { start: laneData[i].start, end: laneData[i].end, parts: [{ start: laneData[i].start, end: laneData[i].end, tgl: laneData[i].tgl }] };
                         }
                     }
                     merged.push(cur);
 
                     const laneSum = merged.reduce((acc, curr) => acc + (curr.end - curr.start), 0);
                     const laneColor = laneSum >= r.km ? '#3ddc84' : '#f0b429';
+                    const laneAccumPercent = Math.min(100, (laneSum / r.km) * 100);
 
                     const laneDiv = document.createElement('div');
                     laneDiv.className = 'lane-horizontal';
@@ -1843,10 +1947,15 @@ labelSide.innerHTML = `
                         bar.style.width = `${Math.max(w, 0.4)}%`;
                         bar.style.left = `${l}%`;
                         bar.style.backgroundColor = laneColor;
-                        bar.title = `PKM ${segment.start.toLocaleString('id-ID')} - ${segment.end.toLocaleString('id-ID')}  •  ${w.toFixed(1)}% dari total rute`;
                         if(w > 2.5) bar.innerHTML = `<span class="bar-label">${formatKm(segment.end - segment.start)}</span>`;
                         laneDiv.appendChild(bar);
                     });
+
+                    // Tooltip gabungan: kalau satu baris berisi lebih dari satu batang terpisah,
+                    // hover di batang manapun pada baris itu menampilkan info SEMUA batang di baris
+                    // itu sekaligus (masing-masing terpisah), plus persentase akumulasi baris tsb.
+                    attachLaneTooltip(laneDiv, merged, r, laneAccumPercent);
+
                     chartArea.appendChild(laneDiv);
                 });
 
