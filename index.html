@@ -1940,17 +1940,37 @@ labelSide.innerHTML = `
                     laneDiv.className = 'lane-horizontal';
 
                     merged.forEach(segment => {
-                        const bar = document.createElement('div');
-                        bar.className = 'bar-segment-horizontal';
-                        const w = ((segment.end - segment.start) / r.km) * 100;
-                        const l = (segment.start / r.km) * 100;
-                        bar.style.width = `${Math.max(w, 0.4)}%`;
-                        bar.style.left = `${l}%`;
-                        bar.style.backgroundColor = laneColor;
-                        if(w > 2.5) bar.innerHTML = `<span class="bar-label">${formatKm(segment.end - segment.start)}</span>`;
-                        laneDiv.appendChild(bar);
-                    });
+    const bar = document.createElement('div');
+    bar.className = 'bar-segment-horizontal';
+    const w = ((segment.end - segment.start) / r.km) * 100;
+    const l = (segment.start / r.km) * 100;
+    bar.style.width = `${Math.max(w, 0.4)}%`;
+    bar.style.left = `${l}%`;
+    bar.style.backgroundColor = laneColor;
 
+    // Label selalu dibuat (tidak lagi disembunyikan berdasarkan ambang persentase).
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'bar-label';
+    labelSpan.textContent = formatKm(segment.end - segment.start);
+    bar.appendChild(labelSpan);
+
+    laneDiv.appendChild(bar);
+
+    // Jika teks label tidak muat di lebar batang aslinya, perkecil HANYA font-size
+    // label ini (bar-nya sendiri tidak diubah ukuran/lebar sama sekali).
+    requestAnimationFrame(() => {
+        const PADDING_PX = 4; // sisakan sedikit ruang kiri-kanan
+        const availableWidth = bar.offsetWidth - PADDING_PX;
+        const labelWidth = labelSpan.offsetWidth;
+        if (labelWidth > availableWidth && availableWidth > 0) {
+            const currentFontSize = parseFloat(getComputedStyle(labelSpan).fontSize);
+            const scale = availableWidth / labelWidth;
+            const MIN_FONT_SIZE = 5; // batas bawah biar teks tidak hilang total
+            const newFontSize = Math.max(currentFontSize * scale, MIN_FONT_SIZE);
+            labelSpan.style.fontSize = `${newFontSize}px`;
+        }
+    });
+});
                     // Tooltip gabungan: kalau satu baris berisi lebih dari satu batang terpisah,
                     // hover di batang manapun pada baris itu menampilkan info SEMUA batang di baris
                     // itu sekaligus (masing-masing terpisah), plus persentase akumulasi baris tsb.
