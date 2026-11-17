@@ -850,8 +850,22 @@
     font-weight: 700;
         }
     </style>
+<style>
+.tab-sembunyi{display:none!important}
+#tabBar{display:flex;gap:6px;align-items:center;position:fixed;top:0;left:0;right:0;height:44px;padding:0 20px;z-index:1100;background:var(--bg);border-bottom:1px solid var(--border)}
+.sticky-top-panel{top:44px!important}
+.app-shell{padding-top:234px!important}
+#tabBar button{font-family:var(--sans);font-weight:600;font-size:13px;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:var(--bg-panel);color:var(--text-dim);cursor:pointer}
+#tabBar button.aktif{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+#tabPeta{display:none;position:fixed;top:44px;left:0;right:0;bottom:0;width:100%;height:calc(100vh - 44px);border:0;background:var(--bg-panel);z-index:900}
+</style>
 </head>
 <body class="p-4 pb-14">
+<div id="tabBar" class="no-print">
+<button id="tabA" class="aktif" onclick="gantiTab('pkm')">PKM Analyst</button>
+<button id="tabB" onclick="gantiTab('peta')">FINDING Analyst</button>
+</div>
+<iframe id="tabPeta" class="no-print"></iframe>
 
     <div id="loader">
         <div class="loader-ring"></div>
@@ -2474,5 +2488,15 @@ async function exportIntegratedExcel() {
             document.getElementById('tanggal').valueAsDate = new Date();
         }
     </script>
+<script>
+function gantiTab(t){
+const peta=t==='peta',f=document.getElementById('tabPeta');
+document.querySelectorAll('body > *:not(#tabBar):not(#tabPeta):not(script)').forEach(e=>e.classList.toggle('tab-sembunyi',peta));
+if(peta&&!f.getAttribute('src'))f.src='peta-finding.html';
+f.style.display=peta?'block':'none';
+document.getElementById('tabA').classList.toggle('aktif',!peta);
+document.getElementById('tabB').classList.toggle('aktif',peta);
+}
+</script>
 </body>
 </html>
