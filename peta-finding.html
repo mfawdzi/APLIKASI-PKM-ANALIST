@@ -13,6 +13,7 @@ h1{font-size:19px;margin:0}.sub{margin:0 0 10px;color:var(--mute)}
 .row{display:flex;gap:6px;margin-bottom:8px}
 button,.btn,select{font:inherit;padding:6px 10px;border:1px solid #b9c3c8;border-radius:5px;background:#fff;color:var(--ink);cursor:pointer;flex:1;text-align:center}
 select{min-width:0}
+input[type=search]{font:inherit;padding:6px 10px;border:1px solid #b9c3c8;border-radius:5px;flex:1;min-width:0;background:#fff;color:var(--ink)}
 .pri{background:var(--pri);border-color:var(--pri);color:#fff}
 button:focus-visible,.btn:focus-within,select:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
 #sum{font-weight:600}#msg{color:#a35a00;font-size:12px;min-height:16px}
@@ -48,8 +49,10 @@ body.pv #side{display:none}
 <div id="app">
 <aside id="side">
 <header><h1>Analisa Data Finding</h1><p class="sub">Peta finding jalur pipa</p>
-<div class="row"><label class="btn pri" for="f">Impor Excel/CSV</label><input id="f" type="file" accept=".xlsx,.xls,.csv" hidden><button id="btnDemo">Preview Maps</button></div>
+<div class="row"><label class="btn pri" for="f">Impor Excel/CSV</label><input id="f" type="file" accept=".xlsx,.xls,.csv" hidden><button id="btnDemo">Pusatkan Maps</button></div>
 <div class="row"><select id="fs" aria-label="Filter status"><option value="">Semua status</option><option value="open">Open</option><option value="close">Close</option></select><select id="ft" aria-label="Filter finding"><option value="">Semua finding</option></select></div>
+<div class="row"><input id="fq" type="search" placeholder="Cari kode finding (mis. F-004)" aria-label="Cari kode finding" autocomplete="off"></div>
+<div class="row"><input id="fc" type="search" placeholder="Cari koordinat / tempat (1.4359, 101.2949)" aria-label="Cari koordinat atau tempat" autocomplete="off"><button id="fcGo" class="pri" style="flex:none">Cari titik</button></div>
 <div class="row"><select id="fj" aria-label="Filter jalur"><option value="">Semua jalur</option></select><button id="btnClr" style="flex:none;color:#b00;border-color:#e3b3b3">Hapus data</button></div>
 <div id="files"></div><div id="sum"></div><div id="msg"></div></header>
 <div id="list"></div>
@@ -130,7 +133,7 @@ function img(u){u=String(u||'').trim();const m=u.match(/drive\.google\.com\/file
 function pop(r){
 const ph=(u,t)=>u?`<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(img(u))}" alt="${t}" onerror="this.parentNode.textContent='Foto tidak bisa dimuat, klik untuk membuka link'"></a><div class="cap">${t}</div>`:'';
 const row=(k,v)=>v?`<tr><td>${k}</td><td>${esc(v)}</td></tr>`:'';
-return `<div class="pp"><table>${row('Kode',r.kode)}${row('Tanggal',r.tgl)}${row('No PKM',r.pkm)}${row('Segmen',r.seg)}${row('Finding',r.fnd)}${row('Status',r.st)}${row('Koordinat',r.la.toFixed(6)+', '+r.lo.toFixed(6))}${row('Keterangan',r.nama)}${row('Update',r.upd)}</table>${ph(r.foto,'Foto di titik')}${ph(r.fotou,'Foto terupdate')}</div>`}
+return `<div class="pp"><table>${row('Kode',r.kode)}${row('Tanggal',r.tgl)}${row('No PKM',r.pkm)}${row('Segmen',r.seg)}${row('Finding',r.fnd)}${row('Status',r.st)}${row('Koordinat',r.la.toFixed(6)+', '+r.lo.toFixed(6))}${row('Keterangan',r.nama)}${row('Update',r.upd)}</table>${ph(r.foto,'Foto di titik')}${ph(r.fotou,'Foto terupdate')}<div style="display:flex;gap:6px;margin-top:8px"><button data-edit="1">Ubah</button><button data-pdel="1" style="color:#b00;border-color:#e3b3b3">Hapus</button></div></div>`}
 
 /* data */
 let R=[],F=[],M=[];
@@ -153,12 +156,12 @@ $('fs').value='';$('ft').value='';draw(true)}
 function draw(fit){
 const ft=$('ft'),keep=ft.value;
 ft.innerHTML='<option value="">Semua finding</option>'+[...new Set(R.map(r=>r.fnd).filter(Boolean))].map(x=>`<option>${esc(x)}</option>`).join('');ft.value=keep;
-const s=$('fs').value,t=ft.value;
-F=R.filter(r=>(!s||(isClose(r)?'close':'open')==s)&&(!t||r.fnd==t)&&segOk(r));
+const s=$('fs').value,t=ft.value,q=nk($('fq').value);
+F=R.filter(r=>(!s||(isClose(r)?'close':'open')==s)&&(!t||r.fnd==t)&&(!q||nk(r.kode).includes(q))&&segOk(r));
 G.clearLayers();LK=L.layerGroup().addTo(G);M=F.map(r=>L.marker([r.la,r.lo],{icon:icon(r),title:r.kode||r.fnd}).bindPopup(pop(r),{maxWidth:300}).addTo(G));layout();legend();
 const c=F.filter(isClose).length;
 $('sum').textContent=`${F.length} finding: ${F.length-c} open, ${c} close`;
-$('list').innerHTML=F.length?F.map((r,i)=>`<div class="it" data-i="${i}"><div class="top"><b>${esc(r.kode||'(tanpa kode)')} ${esc(r.fnd)}</b><span style="display:flex;gap:6px;align-items:center"><span class="st ${isClose(r)?'close':'open'}">${isClose(r)?'Close':'Open'}</span><button class="del" data-del="${i}" title="Hapus finding ini">×</button></span></div><small>PKM ${esc(r.pkm)} - ${esc(r.seg)}</small><small>${esc(r.nama)}</small></div>`).join(''):'<div class="it">Belum ada data. Impor file Excel/CSV.</div>';
+$('list').innerHTML=F.length?F.map((r,i)=>`<div class="it" data-i="${i}"><div class="top"><b>${esc(r.kode||'(tanpa kode)')} ${esc(r.fnd)}</b><span style="display:flex;gap:6px;align-items:center"><span class="st ${isClose(r)?'close':'open'}">${isClose(r)?'Close':'Open'}</span><button class="ed" data-ed="${i}" title="Ubah finding ini">✎</button><button class="del" data-del="${i}" title="Hapus finding ini">×</button></span></div><small>PKM ${esc(r.pkm)} - ${esc(r.seg)}</small><small>${esc(r.nama)}</small></div>`).join(''):'<div class="it">Belum ada data. Impor file Excel/CSV.</div>';
 document.querySelector('#pt tbody').innerHTML=F.map(r=>`<tr><td>${esc(r.kode)}</td><td>${esc(r.tgl)}</td><td>${esc(r.pkm)}</td><td>${esc(r.seg)}</td><td>${esc(r.fnd)}</td><td>${esc(r.st)}</td><td>${esc(r.nama)}</td><td>${esc(r.upd)}</td></tr>`).join('');
 fileList();if(fit&&F.length)map.fitBounds(G.getBounds().pad(.3),{maxZoom:16})}
 
@@ -257,6 +260,7 @@ PL.on('layeradd',lab);G.on('layeradd',lab);map.on('moveend',lab);map.on('click',
 /* aksi */
 $('list').onclick=e=>{const it=e.target.closest('.it');if(!it||it.dataset.i==null)return;const i=+it.dataset.i;map.setView([F[i].la,F[i].lo],17);M[i].openPopup()};
 $('fs').onchange=$('ft').onchange=()=>draw(true);
+$('fq').oninput=()=>{draw(true);if(F.length==1&&M[0])M[0].openPopup()};
 $('f').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
 rd.onload=()=>{const wb=XLSX.read(rd.result,{type:'array',cellDates:true});ingest(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''}),f.name)};
 rd.readAsArrayBuffer(f);e.target.value=''};
@@ -304,6 +308,123 @@ if(!R.length){$('msg').textContent='Tidak ada data untuk dihapus.';return}
 if(!b.dataset.arm){b.dataset.arm=1;b.textContent='Klik lagi untuk hapus semua';CT=setTimeout(()=>{delete b.dataset.arm;b.textContent='Hapus data'},4000);return}
 clearTimeout(CT);delete b.dataset.arm;b.textContent='Hapus data';
 BK=R.slice();R=[];saveR();$('fs').value='';$('ft').value='';draw(false);undoMsg('Semua data ('+BK.length+' finding) dihapus.')};
+/* ubah / hapus data langsung di aplikasi */
+(()=>{
+const sty=document.createElement('style');
+sty.textContent=`.ed{flex:none;width:22px;height:22px;padding:0;line-height:1;border-radius:50%;color:#0b5c6b;border-color:#b7d3d9;font-size:12px}.ed:hover{background:#e6f1f3}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:3000;display:none;align-items:center;justify-content:center;padding:10px}
+#ov.on{display:flex}
+#dlg{background:#fff;border-radius:8px;width:min(460px,100%);max-height:94vh;overflow:auto;padding:16px 18px;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+#dlg h3{margin:0 0 4px;font-size:17px}
+#dlg label{display:block;font-size:12px;color:#5d6b73;margin:8px 0 2px}
+#dlg input,#dlg select{display:block;width:100%;font:inherit;padding:6px 8px;border:1px solid #b9c3c8;border-radius:5px;text-align:left;background:#fff}
+#dlg .g{display:flex;gap:8px}#dlg .g>div{flex:1;min-width:0}
+#dlg .ac{display:flex;gap:6px;margin-top:14px}
+#dlg .er{color:#b00;font-size:12px;min-height:16px;margin-top:6px}
+#dlg .pv{position:relative;display:flex;margin-top:4px}
+#dlg .pv:empty{display:none}
+#dlg .pv img{max-width:100%;max-height:150px;border-radius:5px;border:1px solid #b9c3c8}
+#dlg .pv button{position:absolute;top:4px;right:4px;width:22px;height:22px;padding:0;border-radius:50%;flex:none;color:#b00;font-weight:700;line-height:1}
+#dlg .fb .g{margin-top:4px}#dlg .fb .g input{flex:1;min-width:0;width:auto}#dlg .pk{flex:none}`;
+document.head.appendChild(sty);
+const ov=document.createElement('div');ov.id='ov';
+ov.innerHTML=`<form id="dlg" autocomplete="off"><h3>Ubah finding</h3>
+<div class="g"><div><label>Kode</label><input name="kode"></div><div><label>Tanggal</label><input name="tgl" placeholder="YYYY-MM-DD"></div></div>
+<div class="g"><div><label>No PKM</label><input name="pkm"></div><div><label>Status</label><select name="st"><option>Open</option><option>Close</option></select></div></div>
+<label>Segmen / jalur</label><input name="seg" list="dlseg"><datalist id="dlseg"></datalist>
+<label>Finding</label><input name="fnd" list="dlfnd"><datalist id="dlfnd"></datalist>
+<label>Keterangan</label><input name="nama">
+<label>Update</label><input name="upd">
+<div class="g"><div><label>Latitude</label><input name="la"></div><div><label>Longitude</label><input name="lo"></div></div>
+<div class="fb" data-k="foto"><label>Foto di titik</label><div class="pv"></div><div class="g"><input name="foto"><button type="button" class="pk" data-pick="foto">Pilih foto</button></div></div>
+<div class="fb" data-k="fotou"><label>Foto terupdate</label><div class="pv"></div><div class="g"><input name="fotou"><button type="button" class="pk" data-pick="fotou">Pilih foto</button></div></div>
+<input type="file" accept="image/*" id="dlfile" hidden>
+<div class="er" id="dler"></div>
+<div class="ac"><button type="button" id="dlDel" style="flex:none;color:#b00;border-color:#e3b3b3">Hapus</button><button type="button" id="dlNo">Batal</button><button type="submit" class="pri">Simpan</button></div></form>`;
+document.body.appendChild(ov);
+const f=ov.querySelector('form'),K=['kode','tgl','pkm','seg','fnd','nama','upd'];
+let cur=null,NEW=false;
+const close=()=>{ov.classList.remove('on');cur=null;NEW=false};
+function open(r){cur=r;
+K.forEach(k=>f.elements[k].value=r[k]||'');
+f.elements.la.value=r.la;f.elements.lo.value=r.lo;
+f.elements.st.value=isClose(r)?'Close':'Open';
+$('dlfnd').innerHTML=[...new Set(R.map(x=>x.fnd).filter(Boolean))].map(x=>`<option value="${esc(x)}">`).join('');
+ov.querySelector('h3').textContent=NEW?'Tambah finding':'Ubah finding';$('dlDel').style.display=NEW?'none':'';
+$('dlseg').innerHTML=[...new Set([...R.map(x=>x.seg),...(typeof D!=='undefined'&&D.lines?D.lines.map(l=>l.n):[])].filter(Boolean))].map(x=>`<option value="${esc(x)}">`).join('');
+PH={foto:r.foto||'',fotou:r.fotou||''};phShow();$('dler').textContent='';ov.classList.add('on');f.elements.kode.focus()}
+function del(r){const i=R.indexOf(r);if(i<0)return;
+BK=R.slice();R.splice(i,1);saveR();close();draw(false);undoMsg((r.kode||r.fnd||'Finding')+' dihapus.')}
+f.onsubmit=e=>{e.preventDefault();if(!cur)return;
+const la=parseFloat(String(f.elements.la.value).replace(',','.')),lo=parseFloat(String(f.elements.lo.value).replace(',','.'));
+if(isNaN(la)||isNaN(lo)||Math.abs(la)>90||Math.abs(lo)>180){$('dler').textContent='Koordinat tidak valid (latitude -90 sampai 90, longitude -180 sampai 180).';return}
+const r=cur,wasNew=NEW;BK=R.map(x=>({...x}));if(NEW){R.push(r);NEW=false}
+K.forEach(k=>r[k]=f.elements[k].value.trim());r.foto=PH.foto;r.fotou=PH.fotou;if(wasNew)['fq','fs','ft'].forEach(i=>{const e=$(i);if(e)e.value=''});
+r.la=la;r.lo=lo;
+if((f.elements.st.value=='Close')!==isClose(r))r.st=f.elements.st.value;
+try{localStorage.setItem('fp',JSON.stringify(R))}catch(x){const j=R.indexOf(r);R=BK;BK=null;if(wasNew){NEW=true;cur=r}else cur=R[j];draw(false);$('dler').textContent='Penyimpanan browser penuh. Perkecil atau hapus foto lain, lalu coba lagi.';return}
+saveR();close();draw(false);
+const i=F.indexOf(r);if(i>=0&&M[i])M[i].openPopup();
+if(wasNew)rmPin();undoMsg((r.kode||r.fnd||'Finding')+(wasNew?' ditambahkan.':' diperbarui.'))};
+$('dlDel').onclick=()=>{if(cur)del(cur)};
+$('dlNo').onclick=close;
+/* foto dari penyimpanan */
+let PH={foto:'',fotou:''},pk=null;const fi=$('dlfile'),isD=u=>/^data:image\//.test(u||'');
+function pvShow(k){const v=PH[k]||'';f.querySelector('.fb[data-k="'+k+'"] .pv').innerHTML=v?`<img src="${esc(img(v))}" alt="" onerror="this.style.display='none'"><button type="button" data-clr="${k}" title="Hapus foto">×</button>`:''}
+function phShow(){['foto','fotou'].forEach(k=>{pvShow(k);const i=f.elements[k],d=isD(PH[k]);i.value=d?'':(PH[k]||'');i.placeholder=d?'Foto dari penyimpanan terpasang':'Pilih foto, atau tempel link'})}
+function shrink(file){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),im=new Image();
+im.onload=()=>{const s=Math.min(1,1280/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
+const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',.72))};
+im.onerror=()=>{URL.revokeObjectURL(u);no(new Error('x'))};im.src=u})}
+f.addEventListener('click',e=>{const p=e.target.closest('[data-pick]'),c=e.target.closest('[data-clr]');
+if(p){pk=p.dataset.pick;fi.value='';fi.click()}
+if(c){PH[c.dataset.clr]='';phShow()}});
+f.addEventListener('input',e=>{const n=e.target.name;if(n!='foto'&&n!='fotou')return;
+if(isD(PH[n])&&!e.target.value.trim())return;PH[n]=e.target.value.trim();pvShow(n)});
+fi.onchange=async()=>{const file=fi.files[0];if(!file||!pk)return;
+try{PH[pk]=await shrink(file);phShow();$('dler').textContent=''}catch(x){$('dler').textContent='Foto tidak bisa dibaca. Pakai format JPG atau PNG.'}};
+document.addEventListener('click',e=>{const a=e.target.closest('.pp a[href^="data:"]');if(!a)return;e.preventDefault();
+fetch(a.getAttribute('href')).then(r=>r.blob()).then(b=>window.open(URL.createObjectURL(b),'_blank'))},true);
+/* cari titik koordinat & tambah finding */
+let PIN=null;
+const PINI=L.divIcon({className:'',iconSize:[26,34],iconAnchor:[13,34],popupAnchor:[0,-30],html:'<svg viewBox="0 0 26 34" width="26" height="34"><path d="M13 1C6.4 1 1 6.2 1 12.7c0 8.6 12 20.3 12 20.3s12-11.7 12-20.3C25 6.2 19.6 1 13 1z" fill="#0b5c6b" stroke="#fff" stroke-width="2"/><circle cx="13" cy="12.5" r="4.5" fill="#fff"/></svg>'});
+function rmPin(){if(PIN){map.removeLayer(PIN);PIN=null}}
+function pinHtml(label){const p=PIN.getLatLng();
+return `<div class="pp"><b>${esc(label)}</b><div style="margin:4px 0">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div><div style="display:flex;gap:6px"><button class="pri" data-addf="1">Tambah finding di sini</button><button data-rmpin="1">Tutup</button></div><div class="cap">Titik bisa digeser</div></div>`}
+function pin(la,lo,label){rmPin();
+PIN=L.marker([la,lo],{icon:PINI,draggable:true,zIndexOffset:1000}).addTo(map);
+PIN.bindPopup(pinHtml(label),{minWidth:210});
+PIN.on('dragend',()=>{PIN.setPopupContent(pinHtml(label));PIN.openPopup()});
+PIN.openPopup()}
+function nextKode(){let n=0;R.forEach(r=>{const m=String(r.kode||'').match(/(\d+)\s*$/);if(m)n=Math.max(n,+m[1])});return 'F-'+String(n+1).padStart(3,'0')}
+async function goCari(){const t=$('fc').value.trim(),out=$('msg');if(!t)return;
+if(/^\s*-?\d+(?:\.\d+)?\s*[,;\s]\s*-?\d+(?:\.\d+)?\s*$/.test(t)){
+const c=coord({la:'',lo:'',koor:t});
+if(!c){out.textContent='Koordinat di luar jangkauan. Format: latitude, longitude.';return}
+map.setView(c,18);pin(c[0],c[1],'Koordinat dicari');out.textContent='';return}
+out.textContent='Mencari tempat...';
+try{const rs=await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(t))).json();
+if(!rs.length){out.textContent='Tempat tidak ditemukan. Coba kata lain, atau ketik koordinat.';return}
+const la=+(+rs[0].lat).toFixed(6),lo=+(+rs[0].lon).toFixed(6);
+map.setView([la,lo],17);pin(la,lo,rs[0].display_name.split(',').slice(0,2).join(','));out.textContent=''}
+catch(x){out.textContent='Pencarian tempat butuh internet. Koordinat tetap bisa dicari tanpa internet.'}}
+$('fcGo').onclick=goCari;
+$('fc').addEventListener('keydown',e=>{if(e.key=='Enter'){e.preventDefault();goCari()}});
+map.on('contextmenu',e=>pin(+e.latlng.lat.toFixed(6),+e.latlng.lng.toFixed(6),'Titik dipilih'));
+document.addEventListener('click',e=>{const a=e.target.closest('[data-addf],[data-rmpin]');if(!a)return;
+if(a.dataset.rmpin!=null){rmPin();return}
+if(!PIN)return;const p=PIN.getLatLng();map.closePopup();NEW=true;
+open({kode:nextKode(),tgl:new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10),pkm:'',seg:'',fnd:'',nama:'',upd:'',foto:'',fotou:'',st:'Open',la:+p.lat.toFixed(6),lo:+p.lng.toFixed(6),src:'Input manual'})},true);
+ov.addEventListener('mousedown',e=>{if(e.target===ov)close()});
+document.addEventListener('keydown',e=>{if(e.key=='Escape'&&cur)close()});
+document.addEventListener('click',e=>{
+const b=e.target.closest('[data-ed],[data-edit],[data-pdel]');if(!b)return;
+let r;
+if(b.dataset.ed!=null){e.stopPropagation();r=F[+b.dataset.ed]}
+else{r=F[M.findIndex(m=>m.isPopupOpen())]}
+if(!r)return;
+if(b.dataset.pdel!=null){map.closePopup();del(r)}else open(r)},true);
+})();
 const NF='(data lama, tanpa nama file)';
 function fileList(){
 const m={};R.forEach(r=>{const k=r.src||NF;(m[k]=m[k]||{k,n:0}).n++});
