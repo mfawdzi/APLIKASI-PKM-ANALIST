@@ -858,6 +858,79 @@
 #tabBar button{font-family:var(--sans);font-weight:600;font-size:13px;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:var(--bg-panel);color:var(--text-dim);cursor:pointer}
 #tabBar button.aktif{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 #tabPeta{display:none;position:fixed;top:44px;left:0;right:0;bottom:0;width:100%;height:calc(100vh - 44px);border:0;background:var(--bg-panel);z-index:900}
+
+/* ===================== TAMPILAN MOBILE (HP) ===================== */
+@media (max-width:800px){
+  body{padding:0 8px 56px!important}
+
+  /* Tab atas */
+  #tabBar{height:48px;padding:0 8px;gap:6px}
+  #tabBar button{flex:1;height:36px;padding:0 6px;font-size:12px;white-space:nowrap}
+  #tabPeta{top:48px;height:calc(100vh - 48px)!important;height:calc(100dvh - 48px)!important}
+
+  /* Panel atas tidak lagi menempel, supaya layar tidak habis tertutup */
+  .sticky-top-panel{position:static!important;transform:none!important;left:auto!important;top:auto!important;width:100%!important;max-width:none!important;box-shadow:none!important}
+  .app-shell{padding:56px 0 0!important}
+
+  /* Judul + tombol */
+  .app-name{font-size:18px!important}
+  .app-glyph{width:30px!important;height:30px!important}
+  .titlebar{padding:8px 10px!important;gap:6px!important}
+  .route-analysis-ticker{order:2;flex:1 1 100%!important;margin:0!important;height:auto!important;min-height:18px;justify-content:center}
+  #routeAnalysisText{font-size:11px!important;white-space:normal!important;text-align:center;line-height:1.35}
+  .titlebar-right{order:3;flex:1 1 100%!important;min-width:0!important}
+  .titlebar-actions{display:grid!important;grid-template-columns:1.35fr 1fr 1fr 1fr;gap:6px!important;overflow:visible!important}
+  .titlebar-actions .btn-tool{justify-content:center;gap:3px;padding:0 4px!important;font-size:9px!important;height:38px!important}
+  .titlebar-actions .status-pill{display:none}
+
+  /* Form input: satu kolom, huruf 16px supaya HP tidak zoom sendiri */
+  .panel-bottom{padding:10px!important}
+  .panel-bottom form{grid-template-columns:1fr!important;gap:10px!important}
+  .panel-bottom form > div:nth-of-type(n){grid-column:auto!important}
+  .panel-bottom .field-input{font-size:16px!important;height:44px!important}
+  .panel-bottom .btn-submit{height:46px!important;font-size:12px!important}
+  .field-input{font-size:16px!important}
+
+  /* Diagram: 1 kolom */
+  .canvas-wrap{padding:12px 0 18px}
+  .report-canvas{padding:12px!important}
+  .report-corner{display:none}
+  .report-header h2{font-size:15px!important;letter-spacing:.03em!important}
+  .report-meta{flex-wrap:wrap;gap:6px 12px!important}
+  .diagram-container{grid-template-columns:1fr!important;gap:10px!important}
+  .route-row:hover{transform:none!important}
+  .route-label-side{padding:8px 10px!important;gap:8px!important}
+  .route-label-side .route-name{font-size:13px!important;white-space:normal!important}
+  .route-label-side .route-length{font-size:10px!important}
+  .axis-tick{font-size:9px!important}
+  .bar-label{font-size:8px!important}
+  .lane-horizontal{height:24px!important}
+  .lane-tooltip{max-width:calc(100vw - 24px)!important;font-size:10px!important}
+
+  /* Database */
+  .data-panel{margin-bottom:60px}
+  .data-panel-head{padding:10px 12px!important}
+  .filter-bar{grid-template-columns:1fr 1fr!important;padding:10px 12px;gap:8px!important}
+  .filter-bar > #filterRoute,
+  .filter-bar > #filterVisitCount,
+  .filter-bar > #toggleDataBtn{grid-column:span 2}
+  .filter-bar #filterRoute,
+  .filter-bar #filterDateFrom,
+  .filter-bar #filterDateTo{font-size:16px!important}
+  /* tabel bisa digeser ke samping (tidak mengganggu tombol Tampilkan/Sembunyikan) */
+  #databaseTable:not([style*="none"]){display:block!important;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+  .data-table thead th{padding:9px 8px!important;font-size:8.5px!important}
+  .data-table tbody td{padding:10px 8px!important;font-size:12px!important}
+  .row-actions button{padding:6px 8px!important}
+
+  /* Modal Pengaturan Rute */
+  .modal-overlay{padding:8px!important}
+  .modal-box{max-height:92vh!important;border-radius:12px!important}
+  .modal-header,.modal-body,.modal-footer{padding:14px!important}
+
+  /* Status bar bawah */
+  .status-bar{padding:6px 10px!important}
+}
 </style>
 </head>
 <body class="p-4 pb-14">
