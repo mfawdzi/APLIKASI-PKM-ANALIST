@@ -192,6 +192,37 @@ let IDBH=null;
 const idb=()=>IDBH||(IDBH=new Promise((ok,no)=>{const q=indexedDB.open('fpdb',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)}));
 const idbSet=v=>idb().then(d=>new Promise((ok,no)=>{const t=d.transaction('kv','readwrite');t.objectStore('kv').put(v,'R');t.oncomplete=ok;t.onerror=t.onabort=()=>no(t.error)}));
 const idbGet=()=>idb().then(d=>new Promise((ok,no)=>{const q=d.transaction('kv').objectStore('kv').get('R');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)}));
+/* ===== FOTO: klik foto = tampil besar hampir seluruh layar (panah / geser untuk foto lain, Esc untuk tutup) ===== */
+(()=>{
+const css=document.createElement('style');
+css.textContent='#lbx{position:fixed;inset:0;z-index:6000;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center}#lbx.on{display:flex}#lbx img{max-width:96vw;max-height:92vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 30px rgba(0,0,0,.6);user-select:none;-webkit-user-drag:none}#lbx .lc{position:absolute;top:12px;left:0;right:0;padding:0 64px;text-align:center;color:#fff;font:600 14px/18px system-ui,"Segoe UI",sans-serif;text-shadow:0 1px 3px #000;pointer-events:none}#lbx button{position:absolute;flex:none;width:46px;height:46px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:30px;line-height:44px;cursor:pointer}#lbx button:hover{background:rgba(255,255,255,.4)}#lbx .lx{top:10px;right:12px}#lbx .lp,#lbx .ln{top:50%;margin-top:-23px}#lbx .lp{left:12px}#lbx .ln{right:12px}#lbx.one .lp,#lbx.one .ln{display:none}';
+document.head.appendChild(css);
+const lb=document.createElement('div');lb.id='lbx';
+lb.innerHTML='<div class="lc"></div><button type="button" class="lx" title="Tutup (Esc)">×</button><button type="button" class="lp" title="Foto sebelumnya (←)">‹</button><button type="button" class="ln" title="Foto berikutnya (→)">›</button><img alt="">';
+document.body.appendChild(lb);
+const im=lb.querySelector('img'),lc=lb.querySelector('.lc');
+let L=[],ix=0;
+const big=u=>String(u).replace(/(drive\.google\.com\/thumbnail\?[^"']*?)sz=w\d+/,'$1sz=w1800');
+const show=()=>{const o=L[ix];im.src=big(o.s);lc.textContent=(o.c?o.c+'  ·  ':'')+(L.length>1?(ix+1)+' / '+L.length:'')};
+const open=(a,i)=>{L=a;ix=i;lb.classList.toggle('one',a.length<2);lb.classList.add('on');show()};
+const close=()=>{lb.classList.remove('on');im.removeAttribute('src')};
+const go=d=>{if(L.length<2)return;ix=(ix+d+L.length)%L.length;show()};
+lb.querySelector('.lx').onclick=close;lb.querySelector('.lp').onclick=()=>go(-1);lb.querySelector('.ln').onclick=()=>go(1);
+lb.addEventListener('click',e=>{if(e.target===lb)close()});
+let tx=null;
+lb.addEventListener('touchstart',e=>{tx=e.touches[0].clientX},{passive:true});
+lb.addEventListener('touchend',e=>{if(tx==null)return;const d=e.changedTouches[0].clientX-tx;tx=null;if(Math.abs(d)>50)go(d<0?1:-1)},{passive:true});
+document.addEventListener('keydown',e=>{if(!lb.classList.contains('on'))return;
+if(e.key=='Escape'||e.key=='ArrowLeft'||e.key=='ArrowRight'){e.preventDefault();e.stopPropagation();if(e.key=='Escape')close();else go(e.key=='ArrowLeft'?-1:1)}},true);
+const capOf=x=>{const fo=x.closest('.fo'),pp=x.closest('.pp');
+if(fo){const c=fo.querySelector('.cap'),tr=pp&&pp.querySelector('tr');
+return(tr&&tr.firstChild.textContent=='Kode'?tr.lastChild.textContent+'  ·  ':'')+(c?c.textContent:'')}
+const fb=x.closest('.fb');return fb?fb.querySelector('label').textContent+' '+(Array.from(fb.querySelectorAll('.pv img')).indexOf(x)+1):''};
+document.addEventListener('click',e=>{const x=e.target.closest('.pp .fo img,#dlg .pv img');if(!x)return;
+e.preventDefault();e.stopPropagation();
+const root=x.closest('.pp')||x.closest('#dlg'),g=Array.from(root.querySelectorAll('.fo img,.pv img'));
+open(g.map(y=>({s:y.currentSrc||y.src,c:capOf(y)})),g.indexOf(x))},true);
+})();
 function persist(){const nd=u=>fl(u).filter(x=>!/^data:/.test(x)).join('\n'),lite=()=>JSON.stringify(R.map(r=>({...r,foto:nd(r.foto),fotou:nd(r.fotou)})));
 if(window.indexedDB){idbSet(R.slice()).catch(()=>{$('msg').textContent='Foto gagal disimpan di browser (penyimpanan penuh). Data teks tetap tersimpan.'});try{localStorage.setItem('fp',lite())}catch(e){}return 2}
 try{localStorage.setItem('fp',JSON.stringify(R));return 2}catch(e){}
@@ -224,7 +255,7 @@ rows.forEach(o=>{const n={};for(const k in o)n[nk(k)]=o[k];const r={};for(const 
 const c=coord(r);if(!c){if(Object.values(r).some(v=>v!==''))skip++;return}
 r.la=c[0];r.lo=c[1];r.tgl=r.tgl===''?'':dt(r.tgl);if(r.upd instanceof Date)r.upd=dt(r.upd);
 ['pkm','seg','fnd','nama','upd','foto','fotou','st','kode'].forEach(k=>r[k]=String(r[k]).trim());
-delete r.koor;r.src=nm;r.sht=o.__sh||'';{const ft=fm&&fm[(o.__sh||'')+'#'+o.__rowNum__];if(ft){if(ft.foto)r.foto=ft.foto;if(ft.fotou)r.fotou=ft.fotou}}
+delete r.koor;r.src=nm;r.sht=o.__sh||'';r.rn=o.__rowNum__;{const ft=fm&&fm[(o.__sh||'')+'#'+o.__rowNum__];if(ft){if(ft.foto)r.foto=ft.foto;if(ft.fotou)r.fotou=ft.fotou}}
 const ps=r.fnd.split(/\s+dan\s+|\s+and\s+|\s*[&;]\s*|\s*,\s*/i).map(x=>x.trim().replace(/(^|\s)(\p{L})/gu,(m,a,b)=>a+b.toUpperCase())).filter(Boolean);
 const gid=ps.length>1?Math.random().toString(36).slice(2,9):'';(ps.length?ps:['']).forEach(p=>add.push({...r,fnd:p,fo:gid?r.fnd:'',fg:gid}))});R=R.filter(r=>r.src!==nm).concat(add);fillKode();persist();
 try{localStorage.setItem('fp',JSON.stringify(R))}catch(e){}
@@ -398,7 +429,19 @@ ingest(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''}),f.name)
 }catch(err){$('msg').textContent='Gagal membaca file: '+err.message}};
 rd.readAsArrayBuffer(f)});
 })();
-const demo=()=>S.map(r=>Object.fromEntries(H.map((h,i)=>[h,r[i]])));
+/* paste (Ctrl+V) banyak file sekaligus dari Explorer / Finder ke halaman peta */
+document.addEventListener('paste',e=>{
+const cd=e.clipboardData;if(!cd)return;
+const dlg=document.getElementById('ov');
+if(dlg&&dlg.classList.contains('on'))return;           /* dialog ubah finding terbuka: biarkan */
+let fs=Array.from(cd.files||[]);
+if(!fs.length&&cd.items)fs=Array.from(cd.items).filter(i=>i.kind==='file').map(i=>i.getAsFile()).filter(Boolean);
+if(!fs.length)return;                                   /* paste teks biasa: jangan diganggu */
+e.preventDefault();
+const okF=fs.filter(f=>/\.(xlsx|xls|csv|kml)$/i.test(f.name)),skip=fs.length-okF.length;
+if(!okF.length){$('msg').textContent='Tidak ada file Excel/CSV/KML di clipboard. Yang dipaste: '+fs.map(f=>f.name).join(', ');return}
+$('msg').textContent='Menempel '+okF.length+' file'+(skip?' ('+skip+' file lain dilewati)':'')+'...';
+impFiles(okF)});
 $('btnDemo').onclick=()=>{
 const PAD=24; /* jarak ujung jalur ke tepi peta (px): makin kecil = makin mepet */
 const b=PL.getBounds();if(!b.isValid())return;
@@ -482,7 +525,8 @@ $('dlDel').onclick=()=>{if(cur)del(cur)};
 $('dlNo').onclick=close;
 /* foto dari penyimpanan */
 let PH={foto:'',fotou:''},pk=null;const fi=$('dlfile');fi.multiple=true;const isD=u=>/^data:image\//.test(u||'');
-function pvShow(k){const v=PH[k]||'';f.querySelector('.fb[data-k="'+k+'"] .pv').innerHTML=v?`<img src="${esc(img(v))}" alt="" onerror="this.style.display='none'"><button type="button" data-clr="${k}" title="Hapus foto">×</button>`:''}
+function pvShow(k){const a=fl(PH[k]);f.querySelector('.fb[data-k="'+k+'"] .pv').innerHTML=a.map((u,i)=>`<span><img src="${esc(img(u))}" alt="Foto ${i+1}" title="Klik untuk memperbesar" onerror="this.style.display='none'"><button type="button" data-clr="${k}" data-i="${i}" title="Hapus foto ini">×</button></span>`).join('')}
+function pvShowLama(k){const v=PH[k]||'';f.querySelector('.fb[data-k="'+k+'"] .pv').innerHTML=v?`<img src="${esc(img(v))}" alt="" onerror="this.style.display='none'"><button type="button" data-clr="${k}" title="Hapus foto">×</button>`:''}
 function phShow(){['foto','fotou'].forEach(k=>{pvShow(k);const i=f.elements[k],a=fl(PH[k]);i.value=a.filter(x=>!isD(x)).join(' ');i.placeholder=a.some(isD)?'Foto dari penyimpanan terpasang':'Pilih foto, atau tempel link'})}
 function shrink(file){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),im=new Image();
 im.onload=()=>{const s=Math.min(1,1280/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
@@ -604,7 +648,7 @@ const gl=(v,n)=>{try{if(v!==undefined&&v!==''&&Math.abs(dms(v)-n)<1e-4)return v}
 const dim=u=>new Promise(ok=>{const i=new Image();i.onload=()=>ok([i.width,i.height]);i.onerror=()=>ok([300,300]);i.src=u});
 const cols=['Register Date','Segmen','Nama Segmen','Fluid Type (Crude oil/gas)','Pipa Size','Area (HCT North/South/Dumai)','PKM','GPS Loc (N)','GPS Loc (E)','Finding','Keterangan','DOKUMENTASI','DOKUMENTASI UPDATE','TANGGAL UPDATE','STATUS','Kode Finding'];
 const wid=[12,14,28,14,10,16,8,15,15,34,26,48,48,17,11,13];
-const CW=336,RH=304,BW=300,BH=270;
+const CW=336,RH=300,BW=300,BH=270;
 const slotFoto=(n,D)=>{
 const W=CW+4,H=RH;
 if(n<3){const w=W/Math.max(n,1);return D.map((_,i)=>({x:i*w,y:0,w,h:H}))}
@@ -616,11 +660,11 @@ S=[];S[o[0]]={x:0,y:0,w,h};S[o[1]]={x:0,y:h,w,h};S[t]={x:w,y:0,w,h:H}
 }else{      /* 4 foto atau lebih: kotak-kotak rapi di dalam sel yang sama, makin banyak makin kecil */
 const c=Math.ceil(Math.sqrt(n)),r=Math.ceil(n/c),w=W/c,h=H/r;
 S=D.map((_,i)=>{const k=Math.floor(i/c),m=k==r-1?n-c*(r-1):c;return{x:(i%c)*w+(c-m)*w/2,y:k*h,w,h}})}
-return S.map((s,i)=>{const d=D[i],k=Math.min(s.w/d[0],s.h/d[1]),w=d[0]*k,h=d[1]*k;return{x:s.x+(s.w-w)/2,y:s.y+(s.h-h)/2,w,h}})};  /* sel foto 336x304 px; foto maksimal 300x270 px, selalu di tengah dengan jarak ke garis */
+return S;};  /* sel foto 336x304 px; foto maksimal 300x270 px, selalu di tengah dengan jarak ke garis */
 const wb=new ExcelJS.Workbook();
 const bd={style:'thin'},B={top:bd,left:bd,bottom:bd,right:bd},al={horizontal:'center',vertical:'middle',wrapText:true},fn={name:'Aptos Narrow',size:11};
 /* satu sheet per segmen: nama tab asal file Excel, atau isi kolom Segmen */
-const grp=new Map();
+const grp=new Map();const gagal=[];let nFoto=0,nRow=0;
 const gs=new Set(),FX=[];for(const r of F){if(r.fg&&F.some(x=>x!==r&&x.fg==r.fg)){if(gs.has(r.fg))continue;gs.add(r.fg);FX.push({...r,fnd:r.fo})}else FX.push(r)}
 for(const r of FX){const k=(r.sht||r.seg||'Tanpa Segmen').trim()||'Tanpa Segmen';if(!grp.has(k))grp.set(k,[]);grp.get(k).push(r)}
 const used=new Set(),idc=new Map(),dc=new Map();
@@ -633,26 +677,37 @@ const hr=ws.getRow(1);hr.height=45;
 hr.eachCell(c=>{c.font={...fn,bold:true};c.alignment=al;c.border=B;c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9EAD3'}}});
 for(const r of list){
 const row=ws.addRow([sd(r.tgl),r.seg,r.nseg||'',r.fluid||'',nv(r.size),r.area||'',nv(r.pkm),gl(r.gn,r.la),gl(r.ge,r.lo),r.fnd,r.nama,'','',sd(r.upd),r.st,r.kode]);
-let has=false,mx=1;
+let has=false,mx=1;nRow++;
 for(const [kk,col] of [['foto',12],['fotou',13]]){const ls=fl(r[kk]),im=ls.filter(x=>/^data:image\//.test(x)),lk=ls.filter(x=>!/^data:image\//.test(x));
 mx=Math.max(mx,im.length);const n=im.length,DM=[];for(const u of im){let d=dc.get(u);if(!d){d=await dim(u);dc.set(u,d)}DM.push(d)}const SL=slotFoto(n,DM);
 for(let i=0;i<im.length;i++){const u=im[i];
 let d=dc.get(u);if(!d){d=await dim(u);dc.set(u,d)}
-const gp=2,s=SL[i],ww=s.w-2*gp,hh=s.h-2*gp;
-let id=idc.get(u);if(id===undefined){id=wb.addImage({base64:u,extension:/^data:image\/png/.test(u)?'png':'jpeg'});idc.set(u,id)}
+const gp=6,s=SL[i],ww=s.w-2*gp,hh=s.h-2*gp;
+const ck=u.length+'|'+u.slice(-40)+'|'+Math.round(ww)+'x'+Math.round(hh);
+let id=idc.get(ck);
+if(id===undefined){
+const cu=await new Promise(ok=>{const im=new Image();im.onload=()=>{
+const W2=Math.round(ww*3),H2=Math.round(hh*3),cv=document.createElement('canvas');cv.width=W2;cv.height=H2;
+const x=cv.getContext('2d'),k=Math.max(W2/im.width,H2/im.height),w=im.width*k,h=im.height*k;
+x.fillStyle='#fff';x.fillRect(0,0,W2,H2);x.drawImage(im,(W2-w)/2,(H2-h)/2,w,h);
+ok(cv.toDataURL('image/jpeg',.85))};im.onerror=()=>ok(null);im.src=u});
+if(cu){try{id=wb.addImage({base64:cu,extension:'jpeg'});idc.set(ck,id)}catch(e){id=null}}else id=null}
+if(id==null){gagal.push({kode:r.kode||r.fnd||'(tanpa kode)',ref:'Sheet "'+ws.name+'", baris '+row.number,why:(kk=='foto'?'Foto di titik':'Foto terupdate')+' ke-'+(i+1)+' rusak / tidak bisa dibaca, tidak masuk file'});continue}
 const cx=s.x,cy=s.y;
-ws.addImage(id,{tl:{nativeCol:col-1,nativeColOff:Math.round((cx+gp)*9525),nativeRow:row.number-1,nativeRowOff:Math.round((cy+gp)*9525)},ext:{width:ww,height:hh},editAs:'oneCell'});has=true}
+ws.addImage(id,{tl:{nativeCol:col-1,nativeColOff:Math.round((cx+gp)*9525),nativeRow:row.number-1,nativeRowOff:Math.round((cy+gp)*9525)},ext:{width:ww,height:hh},editAs:'oneCell'});has=true;nFoto++}
 if(lk.length)row.getCell(col).value={text:lk.join('\n'),hyperlink:lk[0]}}
-row.height=has?228:45;
+row.height=has?225:45;
 row.eachCell({includeEmpty:true},c=>{c.font=fn;c.alignment=al;c.border=B});
 row.getCell(1).numFmt='d-mmm-yy';row.getCell(14).numFmt='d-mmm-yy'}}
 const buf=await wb.xlsx.writeBuffer(),a=document.createElement('a');
 a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
 a.download=(()=>{const st=$('fs').value||(LGF&&LGF.slice(0,3)=='st:'?LGF.slice(3):''),sg=SEG?(JK.find(j=>j.k==SEG)||{n:SEG}).n:'',s=st=='open'?'Open ':st=='close'?'Close ':'';return(sg?sg+' '+s+'Finding':s+'Finding Semua Jalur').replace(/[\\/:*?"<>|]+/g,'_')})()+'.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1e4)
+if(gagal.length)infoFoto('Ada foto yang tidak tersimpan di file','File XLSX sudah diunduh, tetapi '+gagal.length+' foto tidak masuk:',gagal);
+else infoOk('Ekspor berhasil','File XLSX sudah diunduh.',['✔ '+nRow+' data finding tertulis','✔ '+nFoto+' foto tersimpan di file','✔ '+grp.size+' sheet dibuat','✔ Tidak ada data atau foto yang gagal']);
 }catch(e){$('msg').textContent='Gagal ekspor: '+e.message}};
 window.dlTpl=async()=>{try{
 const cols=['Register Date','Segmen','Nama Segmen','Fluid Type (Crude oil/gas)','Pipa Size','Area (HCT North/South/Dumai)','PKM','GPS Loc (N)','GPS Loc (E)','Finding','Keterangan','DOKUMENTASI','DOKUMENTASI UPDATE','TANGGAL UPDATE','STATUS','Kode Finding'];
-const wid=[12,14,28,14,10,16,8,15,15,34,26,48,48,17,11,13];
+const wid=[12,14,28,14,10,16,8,15,15,34,26,50,50,17,11,13];
 const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('Finding',{views:[{state:'frozen',ySplit:1}]});
 const bd={style:'thin'},B={top:bd,left:bd,bottom:bd,right:bd},al={horizontal:'center',vertical:'middle',wrapText:true},fn={name:'Aptos Narrow',size:11};
 ws.columns=cols.map((h,i)=>({header:h,key:'c'+i,width:wid[i]}));
@@ -763,13 +818,14 @@ if(!add.length){$('msg').textContent='KML "'+fname+'" tidak berisi garis jalur (
 if(fresh){D.lines=[];JO.del=[];JO.ren={}}window._kt=Date.now();add.forEach(l=>{l._o=l.n;D.lines.push(l)});
 const ok=saveJO();refJ('');
 map.fitBounds(L.latLngBounds(add.flatMap(l=>l.c)).pad(.1));
-$('msg').textContent='KML "'+fname+'": '+new Set(add.map(l=>l.n)).size+' jalur ditambahkan.'+(ok?'':' (Penyimpanan browser penuh, jalur tidak tersimpan.)')}
+$('msg').textContent='KML "'+fname+'": '+new Set(add.map(l=>l.n)).size+' jalur ditambahkan.'+(ok?'':' (Penyimpanan browser penuh, jalur tidak tersimpan.)');
+if(ok)infoOk('Impor KML berhasil','File "'+fname+'"',['✔ '+new Set(add.map(l=>l.n)).size+' jalur masuk ke peta','✔ '+add.length+' garis dibaca, tidak ada yang gagal'])}
 /* foto tertanam di Excel (.xlsx) dibaca dengan ExcelJS lalu dicocokkan ke baris + kolom Foto/Dokumentasi */
-function fotoKecil(buf,ext){return new Promise(ok=>{const u=URL.createObjectURL(new Blob([buf],{type:'image/'+(ext||'jpeg')})),i=new Image();
-i.onload=()=>{const s=Math.min(1,960/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=Math.round(i.width*s);c.height=Math.round(i.height*s);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',.7))};
+function fotoKecil(buf,ext){return new Promise(ok=>{setTimeout(()=>ok(''),8000);const u=URL.createObjectURL(new Blob([buf],{type:'image/'+(ext||'jpeg')})),i=new Image();
+i.onload=()=>{const s=Math.min(1,1280/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=Math.round(i.width*s);c.height=Math.round(i.height*s);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',.76))};
 i.onerror=()=>{URL.revokeObjectURL(u);ok('')};i.src=u})}
 async function fotoExcel(buf,wbX){
-const out={};let miss=0;
+const out={};let miss=0;const ml=[];let okc=0;
 try{
 const ew=new ExcelJS.Workbook();await ew.xlsx.load(buf);
 for(const ws of ew.worksheets){                                   /* semua sheet, bukan hanya yang pertama */
@@ -790,13 +846,46 @@ let k=key(hd(cc));
 for(let c=t.nativeCol;!k&&X0(c)<R;c++)k=key(hd(c));
 const id=ws.name+'#'+row,sig=im.imageId+'|'+Math.round(L/9525)+'|'+Math.round(T/9525);
 if(seen.has(sig))continue;seen.add(sig);                /* kunci foto = nama sheet + nomor baris */
-if(!k){miss++;continue}
+if(!k){miss++;ml.push({sh:ws.name,r:row+1,w:'Foto ada di luar kolom Foto/Dokumentasi'});continue}
 let u=cache.get(im.imageId);
 if(u===undefined){const g=ew.getImage(im.imageId);u=g&&g.buffer?await fotoKecil(g.buffer,g.extension):'';cache.set(im.imageId,u)}
-if(!u){miss++;continue}
-const o=out[id]=out[id]||{};o[k]=o[k]?o[k]+'\n'+u:u}}
-}catch(e){}
-out.__miss=miss;return out}
+if(!u){miss++;ml.push({sh:ws.name,r:row+1,w:'Foto rusak / format tidak bisa dibaca'});continue}
+const o=out[id]=out[id]||{};o[k]=o[k]?o[k]+'\n'+u:u;okc++}}
+}catch(e){out.__err=e.message||'galat'}
+out.__miss=miss;out.__list=ml;out.__ok=okc;return out}
+function infoFoto(judul,ket,list){
+const old=document.getElementById('jf');if(old)old.remove();
+const o=document.createElement('div');o.id='jf';
+o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:7000;display:flex;align-items:center;justify-content:center;padding:10px';
+const b=document.createElement('div');
+b.style.cssText='background:#fff;border-radius:8px;width:min(520px,100%);max-height:85vh;display:flex;flex-direction:column;padding:16px 18px;box-shadow:0 8px 30px rgba(0,0,0,.4)';
+b.innerHTML='<h3 style="margin:0 0 6px;font-size:17px;color:#a35a00"></h3><p style="margin:0 0 8px;font-size:13px;color:#5d6b73"></p><div class="jfl" style="overflow:auto;border:1px solid #d9dfe2;border-radius:5px;font-size:12px"></div><div style="margin-top:10px;display:flex;gap:6px"><button type="button" class="cp">Salin daftar</button><button type="button" class="pri ok">Tutup</button></div>';
+b.querySelector('h3').textContent=judul;b.querySelector('p').textContent=ket;
+b.querySelector('.jfl').innerHTML=list.map(x=>'<div style="padding:6px 8px;border-bottom:1px solid #eee"><b>'+esc(x.kode)+'</b> · '+esc(x.ref)+'<br><span style="color:#b00">'+esc(x.why)+'</span></div>').join('');
+b.querySelector('.ok').onclick=()=>o.remove();
+b.querySelector('.cp').onclick=()=>{const t=list.map(x=>x.kode+' | '+x.ref+' | '+x.why).join('\n');try{navigator.clipboard.writeText(t)}catch(e){}b.querySelector('.cp').textContent='Tersalin'};
+o.onmousedown=e=>{if(e.target===o)o.remove()};
+o.appendChild(b);document.body.appendChild(o)}
+function infoOk(judul,ket,baris){
+const old=document.getElementById('jok');if(old)old.remove();
+const o=document.createElement('div');o.id='jok';
+o.style.cssText='position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:7000;background:#fff;border:2px solid #2e7d32;border-radius:10px;padding:12px 16px;box-shadow:0 6px 24px rgba(0,0,0,.4);width:min(420px,calc(100% - 20px));font-size:13px';
+o.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="flex:none;width:26px;height:26px;border-radius:50%;background:#2e7d32;color:#fff;display:grid;place-items:center;font-weight:700">✓</span><b class="t" style="flex:1;font-size:15px;color:#2e7d32"></b><button type="button" class="x" style="flex:none;width:26px;height:26px;padding:0">×</button></div><div class="k" style="margin:6px 0 2px;color:#5d6b73"></div><div class="b"></div>';
+o.querySelector('.t').textContent=judul;o.querySelector('.k').textContent=ket;
+o.querySelector('.b').innerHTML=baris.map(x=>'<div style="padding:2px 0;color:#17242b">'+esc(x)+'</div>').join('');
+o.querySelector('.x').onclick=()=>o.remove();
+document.body.appendChild(o);setTimeout(()=>o.remove(),12000)}
+function laporOk(fn,fm){
+if(/dilewati/.test($('msg').textContent))return;   /* ada baris dilewati: peringatannya sudah tampil, jangan klaim sukses */
+if((fm.__list||[]).length||fm.__err)return;         /* ada foto gagal: kotak peringatan yang tampil */
+const b=['✔ '+R.filter(r=>r.src===fn).length+' data finding terbaca'];
+if(fm.__ok!==undefined)b.push('✔ '+fm.__ok+' foto tertanam masuk ke aplikasi');
+b.push('✔ Tidak ada data atau foto yang gagal');
+infoOk('Impor berhasil','File "'+fn+'"',b)}
+function laporFoto(fn,fm){
+const l=(fm.__list||[]).map(x=>{const r=R.find(y=>y.src===fn&&y.sht===x.sh&&y.rn===x.r-1);return{kode:r?(r.kode||r.fnd||'(tanpa kode)'):'(baris bukan data finding)',ref:'Sheet "'+x.sh+'", baris '+x.r,why:x.w}});
+if(fm.__err)l.unshift({kode:'Semua foto',ref:fn,why:'Foto di file tidak bisa dibaca ('+fm.__err+')'});
+if(l.length)infoFoto('Ada foto yang tidak terbaca','File "'+fn+'": '+l.length+' foto tidak masuk ke aplikasi.',l)}
 function impFiles(fl){
 fl=Array.from(fl||[]);
 const ok=fl.filter(f=>/\.(xlsx|xls|csv|kml)$/i.test(f.name));
@@ -808,10 +897,10 @@ rd.readAsText(f)}
 else{
 rd.onload=()=>{try{const wb=XLSX.read(rd.result,{type:'array',cellDates:true});
 const rows=[];wb.SheetNames.forEach(sn=>XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:''}).forEach(o=>{Object.defineProperty(o,'__sh',{value:sn});rows.push(o)}));   /* semua sheet */
-if(!/\.xlsx$/i.test(f.name)){ingest(rows,f.name);return}
+if(!/\.xlsx$/i.test(f.name)){ingest(rows,f.name);laporOk(f.name,{});return}
 $('msg').textContent='Membaca foto di '+f.name+'...';
-fotoExcel(rd.result,wb).then(fm=>{ingest(rows,f.name,fm);
-const nf=Object.keys(fm).filter(k=>k!='__miss').length;
+fotoExcel(rd.result,wb).then(fm=>{ingest(rows,f.name,fm);try{laporFoto(f.name,fm);laporOk(f.name,fm)}catch(e){console.error('laporan foto:',e)}
+const nf=Object.keys(fm).filter(k=>!/^__/.test(k)).length;
 if(nf||fm.__miss){let ok=persist()==2;
 $('msg').textContent+=(nf?' '+nf+' baris memuat foto dari Excel.':'')+(fm.__miss?' '+fm.__miss+' foto tidak cocok dengan kolom Foto/Dokumentasi atau barisnya.':'')+(ok?'':' Penyimpanan browser penuh: foto hanya ada selama halaman terbuka.')}}).catch(err=>{$('msg').textContent='Gagal membaca file: '+err.message})}catch(err){$('msg').textContent='Gagal membaca file: '+err.message}};
 rd.readAsArrayBuffer(f)}})}
