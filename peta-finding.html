@@ -337,7 +337,7 @@ map.on('zoomend',kodeLabels);
 
 /* nama jalur: semua tampil, tidak menutupi jalur, bisa diklik */
 const LB=L.layerGroup().addTo(map),LL=L.layerGroup().addTo(map),HG=L.layerGroup().addTo(map);
-(()=>{const s=document.createElement('style');s.textContent='.sgl{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:rgba(255,255,255,.96);color:#111!important;text-shadow:none;font-weight:800;font-size:12px;line-height:15px;padding:1px 6px;border-radius:4px;border-width:2px!important;box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:pointer;pointer-events:auto}';document.head.appendChild(s)})();
+(()=>{const s=document.createElement('style');s.textContent='.sgl{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:rgba(255,255,255,.96);color:#111!important;text-shadow:none;font-weight:800;font-size:12px;line-height:15px;padding:1px 6px;border-radius:4px;border-width:2px!important;box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:pointer;pointer-events:auto}.sgb{font-size:18px!important;line-height:24px!important;padding:4px 14px!important;border-width:4px!important;border-radius:8px!important;letter-spacing:.4px;box-shadow:0 0 0 3px #fff,0 4px 14px rgba(0,0,0,.65)}';document.head.appendChild(s)})();
 let HL=null,HT=0;
 function glow(k){
 clearInterval(HT);HG.clearLayers();
@@ -360,10 +360,10 @@ for(let i=0;i<4;i++){if(p[i]==0){if(q[i]<0)return false}else{const t=q[i]/p[i];i
 return true}
 function labels(){
 LB.clearLayers();LL.clearLayers();
-if(SEG)return;
+/* nama jalur tetap tampil saat filter jalur aktif */
 const cr=map.getContainer().getBoundingClientRect(),sz=map.getSize();
 const rel=b=>[b.left-cr.left-3,b.top-cr.top-3,b.right-cr.left+3,b.bottom-cr.top+3];
-const used=[];document.querySelectorAll('.mk,.mkl,.mkd').forEach(e=>used.push(rel(e.getBoundingClientRect())));
+const used=[];document.querySelectorAll('.mk,.mkl,.mkd,.leaflet-control,.leaflet-popup').forEach(e=>used.push(rel(e.getBoundingClientRect())));
 const lines=[],segs=[];
 PL.eachLayer(l=>{
 if(l.getTooltip())l.unbindTooltip();
@@ -372,16 +372,25 @@ const vis=pts.filter(p=>p.x>10&&p.y>10&&p.x<sz.x-10&&p.y<sz.y-10);
 for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];
 if(Math.max(a.x,b.x)<-80||Math.min(a.x,b.x)>sz.x+80||Math.max(a.y,b.y)<-80||Math.min(a.y,b.y)>sz.y+80)continue;
 segs.push([a.x,a.y,b.x,b.y])}
-if(vis.length&&l._nm)lines.push({n:l._nm,k:l._k,c:l._c,a:vis[Math.floor(vis.length/2)]})});
+if(vis.length&&l._nm)lines.push({n:l._nm,k:l._k,c:l._c,a:SEG?vis.reduce((p,q)=>Math.hypot(q.x-sz.x/2,q.y-sz.y/2)<Math.hypot(p.x-sz.x/2,p.y-sz.y/2)?q:p):vis[Math.floor(vis.length/2)]})});
 const dirs=[[0,-1],[0,1],[1,0],[-1,0],[.7,-.7],[-.7,-.7],[.7,.7],[-.7,.7]];
 lines.filter((o,i)=>lines.findIndex(q=>q.k==o.k)==i).forEach(o=>{
 const al=map.containerPointToLatLng([o.a.x,o.a.y]);
 const act=o.k==HL,st='color:'+(act?'#000':o.c)+';border:1px solid '+o.c+';'+(act?'text-shadow:none;background:'+o.c+';box-shadow:0 0 12px 4px '+o.c+';':'');
-const m=L.marker(al,{icon:L.divIcon({className:'',iconSize:[0,0],html:'<div class="sgl" style="'+st+'">'+esc(o.n)+'</div>'}),interactive:true,keyboard:false,zIndexOffset:act?500:0}).addTo(LB);
+const m=L.marker(al,{icon:L.divIcon({className:'',iconSize:[0,0],html:'<div class="sgl'+(SEG?' sgb':'')+'" style="'+st+'">'+esc(o.n)+'</div>'}),interactive:true,keyboard:false,zIndexOffset:act?500:0}).addTo(LB);
 m.on('click',()=>clk(o.k));m.on('dblclick',e=>{if(e.originalEvent)L.DomEvent.stop(e.originalEvent)});
 const e=m.getElement().firstChild,w=e.offsetWidth,h=e.offsetHeight;
 let best=null,bs=1e9;
-for(const k of [1,1.8,2.8,4,6,8,10]){
+if(SEG){const gx=sz.x/2,gy=sz.y/2;
+for(let y=h/2+8;y<=sz.y-h/2-8;y+=12)for(let x=w/2+8;x<=sz.x-w/2-8;x+=12){
+const r=[x-w/2-4,y-h/2-4,x+w/2+4,y+h/2+4];
+const sc=Math.hypot(x-gx,y-gy)+.5*Math.hypot(x-o.a.x,y-o.a.y);
+if(sc>=bs)continue;
+if(used.some(u=>r[0]<u[2]&&r[2]>u[0]&&r[1]<u[3]&&r[3]>u[1]))continue;
+let bad=false;for(const s of segs){if(hit(s[0],s[1],s[2],s[3],r)){bad=true;break}}
+if(bad)continue;
+bs=sc;best={cx:x,cy:y,r}}}
+for(const k of (best?[]:[1,1.8,2.8,4,6,8,10])){
 for(const d of dirs){
 const cx=o.a.x+d[0]*(w/2+8)*k,cy=o.a.y+d[1]*(h/2+6)*k;
 const r=[cx-w/2-2,cy-h/2-2,cx+w/2+2,cy+h/2+2];
@@ -394,7 +403,7 @@ if(bs==0)break}
 if(bs==0)break}
 const cl=map.containerPointToLatLng([best.cx,best.cy]);
 m.setLatLng(cl);used.push(best.r);
-L.polyline([al,cl],{color:o.c,weight:1.5,dashArray:'3 3',interactive:false}).addTo(LL)})}
+L.polyline([al,cl],{color:o.c,weight:SEG?3.5:1.5,dashArray:SEG?'6 4':'3 3',interactive:false}).addTo(LL)})}
 PL.on('layeradd',lab);G.on('layeradd',lab);map.on('moveend',lab);map.on('click',()=>glow(null));lab();
 
 /* aksi */
